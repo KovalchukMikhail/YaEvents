@@ -1,0 +1,6 @@
+@YaEvents_HostAddress = http://localhost:5139
+
+GET {{YaEvents_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
