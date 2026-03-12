@@ -5,7 +5,7 @@ using YaEvents.Data.Dto;
 namespace YaEvents.Presentation.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("events")]
     public class EventsController : ControllerBase
     {
         private readonly IEventService _eventService;
@@ -16,11 +16,7 @@ namespace YaEvents.Presentation.Controllers
         [HttpGet]
         public IActionResult GetEvents()
         {
-            var events = _eventService.GetAllEvents();
-            if(events.Length > 0)
-                return Ok(events);
-            else
-                return NoContent();
+            return Ok(_eventService.GetAllEvents());
         }
         [HttpGet]
         [Route("{id:int}")]
@@ -33,21 +29,23 @@ namespace YaEvents.Presentation.Controllers
                 return NotFound();
         }
         [HttpPost]
-        public IActionResult PostEvent([FromBody] EventDto eventDto)
+        public IActionResult PostEvent([FromBody] EventDtoLite eventDto)
         {
             if(!CompareEventDates(eventDto.StartAt, eventDto.EndAt))
             {
                 ModelState.AddModelError("EndAt", "Дата окончания события должна быть позже даты начала");
-
-                return BadRequest(ModelState);
+                
+                return ValidationProblem(ModelState);
             }
 
-            _eventService.PostEvent(eventDto);
+            var newEventDto = _eventService.PostEvent(eventDto);
+            var url = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}{HttpContext.Request.Path}/{newEventDto.Id}";
 
-            return Created();
+            return Created(url, newEventDto);
         }
         [HttpPut]
-        public IActionResult PutEvent([FromBody] EventDto eventDto)
+        [Route("{id:int}")]
+        public IActionResult PutEvent(int id, [FromBody] EventDtoLite eventDto)
         {
             if (!CompareEventDates(eventDto.StartAt, eventDto.EndAt))
             {
@@ -56,7 +54,7 @@ namespace YaEvents.Presentation.Controllers
                 return BadRequest(ModelState);
             }
 
-            if (_eventService.PutEvent(eventDto))
+            if (_eventService.PutEvent(id, eventDto))
                 return Ok();
             else
                 return NotFound();
@@ -66,7 +64,7 @@ namespace YaEvents.Presentation.Controllers
         public IActionResult DeleteEvent(int id)
         {
             if (_eventService.DeleteEvent(id))
-                return Ok();
+                return NoContent();
             else
                 return NotFound();
         }
