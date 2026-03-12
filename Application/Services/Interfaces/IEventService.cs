@@ -7,8 +7,8 @@ namespace YaEvents.Application.Services.Interfaces
     {
         EventDto[] GetAllEvents();
         EventDto GetEvent(int id);
-        void PostEvent(EventDto eventDto);
-        bool PutEvent(EventDto eventDto);
+        EventDto PostEvent(EventDtoLite eventDto);
+        bool PutEvent(int id, EventDtoLite eventDto);
         bool DeleteEvent(int id);
 
     }
