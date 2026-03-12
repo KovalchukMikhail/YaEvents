@@ -42,7 +42,7 @@ namespace YaEvents.Application.Services.EventService
                 return null;
         }
 
-        public void PostEvent(EventDto eventDto)
+        public EventDto PostEvent(EventDtoLite eventDto)
         {
             var newEvent = new Event
             {
@@ -54,11 +54,19 @@ namespace YaEvents.Application.Services.EventService
             };
 
             _events[newEvent.Id] = newEvent;
+
+            return new EventDto
+                { Id = newEvent.Id,
+                    Title = newEvent.Title,
+                    Description = newEvent.Description,
+                    StartAt = newEvent.StartAt,
+                    EndAt = newEvent.EndAt 
+                };
         }
 
-        public bool PutEvent(EventDto eventDto)
+        public bool PutEvent(int id, EventDtoLite eventDto)
         {
-            if (_events.TryGetValue(eventDto.Id, out Event requiredEvent))
+            if (_events.TryGetValue(id, out Event requiredEvent))
             {
                 requiredEvent.Title = eventDto.Title;
                 requiredEvent.Description = eventDto.Description;
