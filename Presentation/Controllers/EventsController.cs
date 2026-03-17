@@ -51,7 +51,7 @@ namespace YaEvents.Presentation.Controllers
             {
                 ModelState.AddModelError("EndAt", "Дата окончания события должна быть позже даты начала");
 
-                return BadRequest(ModelState);
+                return ValidationProblem(ModelState);
             }
 
             if (_eventService.PutEvent(id, eventDto))
