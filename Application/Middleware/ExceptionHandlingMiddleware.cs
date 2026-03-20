@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using System.ComponentModel.DataAnnotations;
+using System.Net;
+using System.Text;
+using YaEvents.Infrastructure.Exceptions;
 
 namespace YaEvents.Application.Middleware
 {
@@ -40,25 +42,55 @@ namespace YaEvents.Application.Middleware
             if (httpContext.Response.HasStarted)
                 return;
 
-            var statusCode = MapStatusCode(ex);
+            await SetResponse(ex, httpContext);
+        }
 
-            httpContext.Response.StatusCode = statusCode;
-            httpContext.Response.ContentType = "application/json";
-
-            var error = new ProblemDetails
+        private static async Task SetResponse(Exception ex, HttpContext httpContext)
+        {
+            var error = new ProblemDetails();
+            switch (ex)
             {
-                Status = statusCode,
-                Detail = ex.Message
-            };
+                case ValidationException validationException:
+                    httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    error.Title = validationException.Message;
+                    var detail = new StringBuilder();
+                    if(validationException.EntityId != null)
+                    {
+                        detail.Append($"Id объекта: {validationException.EntityId}. ");
+                    }
+                    if (validationException.ModelState != null && validationException.ModelState.ErrorCount > 0)
+                    {
+                        detail.Append($"Детали ошибки: ");
+                        foreach (var item in validationException.ModelState.Values)
+                        {
+                            foreach (var curError in item.Errors)
+                            {
+                                detail.Append($"{curError.ErrorMessage}. ");
+                            }
+                        }
+                    }
+                    error.Detail = detail.ToString();
+                    break;
+                case NotFoundException notFoundException:
+                    httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+                    error.Title = notFoundException.Message;
+                    if(notFoundException.EntityId != null)
+                    {
+                        error.Detail = $"Id = {notFoundException.EntityId}";
+                    }
+                    break;
+                default:
+                    httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                    error.Title = ex.GetType().Name;
+                    error.Detail = ex.Message;
+                    break;
+
+
+            }
+            error.Status = httpContext.Response.StatusCode;
+            httpContext.Response.ContentType = "application/json";
 
             await httpContext.Response.WriteAsJsonAsync(error);
         }
-
-        private static int MapStatusCode(Exception ex)
-            => ex switch
-            {
-                //ValidationException ve => StatusCodes.Status400BadRequest,
-                _ => StatusCodes.Status500InternalServerError
-            };
     }
 }
