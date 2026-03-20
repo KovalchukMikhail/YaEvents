@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc.Diagnostics;
 using YaEvents.Application.Services.Interfaces;
 using YaEvents.Data.Dto;
+using YaEvents.Infrastructure.Exceptions;
 
 namespace YaEvents.Presentation.Controllers
 {
@@ -20,7 +21,7 @@ namespace YaEvents.Presentation.Controllers
             ValidateEventsRequest(from, to, page, pageSize);
 
             if (ModelState.ErrorCount > 0)
-                return ValidationProblem(ModelState);
+                throw new ValidationException("В запросе на получение событий переданы некорректные параметры.") { ModelState = ModelState };
 
             var events = _eventService.GetEvents(title, from, to);
             return Ok(_eventService.GetEventsWithPagination(events, page, pageSize));
@@ -30,10 +31,10 @@ namespace YaEvents.Presentation.Controllers
         public IActionResult GetEvent(int id)
         {
             var eventDto = _eventService.GetEvent(id);
-            if(eventDto != null)
+            if (eventDto != null)
                 return Ok(eventDto);
             else
-                return NotFound();
+                throw new NotFoundException("Не удалось получить объект события") { EntityId = id };
         }
         [HttpPost]
         public IActionResult PostEvent([FromBody] EventDtoLite eventDto)
@@ -41,8 +42,8 @@ namespace YaEvents.Presentation.Controllers
             if(!CompareEventDates(eventDto.StartAt, eventDto.EndAt))
             {
                 ModelState.AddModelError("EndAt", "Дата окончания события должна быть позже даты начала");
-                
-                return ValidationProblem(ModelState);
+
+                throw new ValidationException("В запросе на добавление нового события переданы некорректные параметры.") { ModelState = ModelState };
             }
 
             var newEventDto = _eventService.PostEvent(eventDto);
@@ -58,13 +59,13 @@ namespace YaEvents.Presentation.Controllers
             {
                 ModelState.AddModelError("EndAt", "Дата окончания события должна быть позже даты начала");
 
-                return ValidationProblem(ModelState);
+                throw new ValidationException("В запросе на редактирование события переданы некорректные параметры.") { ModelState = ModelState, EntityId = id };
             }
 
             if (_eventService.PutEvent(id, eventDto))
                 return Ok();
             else
-                return NotFound();
+                throw new NotFoundException("Не удалось получить объект события") { EntityId = id };
         }
         [HttpDelete]
         [Route("{id:int}")]
@@ -73,7 +74,7 @@ namespace YaEvents.Presentation.Controllers
             if (_eventService.DeleteEvent(id))
                 return NoContent();
             else
-                return NotFound();
+                throw new NotFoundException("Не удалось удалить объект события, так как событие не найдено") { EntityId = id };
         }
 
         private bool CompareEventDates(DateTime startAt, DateTime endAt)
