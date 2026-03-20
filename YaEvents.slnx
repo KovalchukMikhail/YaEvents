@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="YaEvents.csproj" />
+  <Project Path="YaEvents.Tests/YaEvents.Tests.csproj" Id="f7e92df9-e2b6-4e50-9405-70cbf76c15e1" />
 </Solution>
