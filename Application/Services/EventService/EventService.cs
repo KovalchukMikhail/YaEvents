@@ -2,41 +2,40 @@
 using YaEvents.Application.Services.Interfaces;
 using YaEvents.Data.Dto;
 using YaEvents.Data.Models;
+using YaEvents.Infrastructure.Repositories.Interfaces;
 
 namespace YaEvents.Application.Services.EventService
 {
     public class EventService : IEventService
     {
-        protected static int _lastId = 0;
-        protected static Dictionary<int, Event> _events = new Dictionary<int, Event>();
-        public EventDto[] GetAllEvents()
+        protected readonly IRepository<Event> _repository;
+        public EventService(IRepository<Event> repository)
         {
-            return _events.Values.OrderBy(e => e.Id)
-                                        .Select(e =>
-                                        {
-                                            return new EventDto
-                                            {
-                                                Id = e.Id,
-                                                Title = e.Title,
-                                                Description = e.Description,
-                                                StartAt = e.StartAt,
-                                                EndAt = e.EndAt,
-                                            };
-                                        }).ToArray();
+            _repository = repository;
         }
-
-        public EventDto GetEvent(int id)
+        public EventDto[] GetEvents(string? title = null, DateTime? from = null, DateTime? to = null)
         {
-            if (_events.TryGetValue(id, out Event requiredEvent))
+            IEnumerable<Event> events = _repository.GetAll();
+            title = title?.Trim();
+
+            if (!string.IsNullOrEmpty(title))
+                events = events.Where(e => e.Title.Contains(title, StringComparison.OrdinalIgnoreCase));
+
+            if(from != null)
+                events = events.Where(e => e.StartAt >= from);
+
+            if (to != null)
+                events = events.Where(e => e.EndAt <= to);
+
+            return events.Select(e => new EventDto(e.Id, e.Title, e.Description, e.StartAt, e.EndAt))
+                         .ToArray();
+        }
+        public EventDto? GetEvent(int id)
+        {
+            var requiredEvent = _repository.Get(id);
+            if (requiredEvent != null)
             {
-                return new EventDto
-                {
-                    Id = requiredEvent.Id,
-                    Title = requiredEvent.Title,
-                    Description = requiredEvent.Description,
-                    StartAt = requiredEvent.StartAt,
-                    EndAt = requiredEvent.EndAt,
-                };
+                return new EventDto(requiredEvent.Id, requiredEvent.Title, requiredEvent.Description, requiredEvent.StartAt, requiredEvent.EndAt);
             }
             else
                 return null;
@@ -46,32 +45,28 @@ namespace YaEvents.Application.Services.EventService
         {
             var newEvent = new Event
             {
-                Id = ++_lastId,
                 Title = eventDto.Title,
                 Description = eventDto.Description,
                 StartAt = eventDto.StartAt,
                 EndAt = eventDto.EndAt
             };
 
-            _events[newEvent.Id] = newEvent;
+            newEvent = _repository.Add(newEvent);
 
-            return new EventDto
-                { Id = newEvent.Id,
-                    Title = newEvent.Title,
-                    Description = newEvent.Description,
-                    StartAt = newEvent.StartAt,
-                    EndAt = newEvent.EndAt 
-                };
+            return new EventDto(newEvent.Id, newEvent.Title, newEvent.Description, newEvent.StartAt, newEvent.EndAt);
         }
 
         public bool PutEvent(int id, EventDtoLite eventDto)
         {
-            if (_events.TryGetValue(id, out Event requiredEvent))
+            var requiredEvent = _repository.Get(id);
+            if (requiredEvent != null)
             {
                 requiredEvent.Title = eventDto.Title;
                 requiredEvent.Description = eventDto.Description;
                 requiredEvent.StartAt = eventDto.StartAt;
                 requiredEvent.EndAt = eventDto.EndAt;
+
+                _repository.Change(requiredEvent);
 
                 return true;
             }
@@ -80,7 +75,17 @@ namespace YaEvents.Application.Services.EventService
         }
         public bool DeleteEvent(int id)
         {
-            return _events.Remove(id);
+            return _repository.Delete(id);
+        }
+        public PaginatedResult<EventDto> GetEventsWithPagination(EventDto[] sourceEvents, int pageNumber, int pageSize)
+        {
+            var events = sourceEvents.Skip((pageNumber - 1) * pageSize)
+                                     .Take(pageSize)
+                                     .ToArray();
+
+            int totalPages = (int)Math.Ceiling((double)sourceEvents.Length / pageSize);
+
+            return new PaginatedResult<EventDto>(events, pageNumber, totalPages, events.Length, sourceEvents.Length);
         }
     }
 }
