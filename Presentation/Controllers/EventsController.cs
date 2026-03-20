@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Diagnostics;
 using YaEvents.Application.Services.Interfaces;
 using YaEvents.Data.Dto;
 
@@ -14,9 +15,15 @@ namespace YaEvents.Presentation.Controllers
             _eventService = eventService;
         }
         [HttpGet]
-        public IActionResult GetEvents()
+        public IActionResult GetEvents([FromQuery] string? title = null, [FromQuery] DateTime? from = null, [FromQuery] DateTime? to = null, int page = 1, int pageSize = 10)
         {
-            return Ok(_eventService.GetAllEvents());
+            ValidateEventsRequest(from, to, page, pageSize);
+
+            if (ModelState.ErrorCount > 0)
+                return ValidationProblem(ModelState);
+
+            var events = _eventService.GetEvents(title, from, to);
+            return Ok(_eventService.GetEventsWithPagination(events, page, pageSize));
         }
         [HttpGet]
         [Route("{id:int}")]
@@ -72,6 +79,20 @@ namespace YaEvents.Presentation.Controllers
         private bool CompareEventDates(DateTime startAt, DateTime endAt)
         {
             return startAt < endAt;
+        }
+
+        private void ValidateEventsRequest(DateTime? from, DateTime? to, int page, int pageSize)
+        {
+            if (from != null && to != null && !CompareEventDates(from.Value, to.Value))
+                ModelState.AddModelError("to", "Дата окончания события должна быть позже даты начала");
+
+            if (page < 1)
+                ModelState.AddModelError("page", "Номер страницы не может быть меньше 1");
+
+            if (pageSize < 1)
+                ModelState.AddModelError("pageSize", "Количество событий на странице не может быть меньше 1");
+
+
         }
     }
 }
