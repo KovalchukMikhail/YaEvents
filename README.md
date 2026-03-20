@@ -17,6 +17,10 @@ middleware расположен в namespace **YaEvents.Application.Middleware**
 4. Добавлены юнит-тесты реализующие проверку успешных и неуспешных сценариев работы методов класса **EventService**.
 Тесты реализованы в классе **EventServiceTests** расположенном в namespace **YaEvents.Tests.Application.Services**
 
+### Пример запроса GET /events с query который не пройдет валидации
+запрос: **https://localhost:7067/events?title=%D1%82&from=2020-01-01&to=2025-01-01&page=0&pageSize=10**
+ответ: **{"title":"В запросе на получение событий переданы некорректные параметры.","status":400,"detail":"Детали ошибки: Номер страницы не может быть меньше 1. "}**
+
 ## Запуск сервиса
 **Запуск из командной строки Windows**
 1. Из папки проекта содержащий файл **YaEvents.slnx** выполнить команду **dotnet run -lp https**
