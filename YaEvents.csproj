@@ -7,6 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="YaEvents.Tests\**" />
+    <Content Remove="YaEvents.Tests\**" />
+    <EmbeddedResource Remove="YaEvents.Tests\**" />
+    <None Remove="YaEvents.Tests\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.4" />
   </ItemGroup>

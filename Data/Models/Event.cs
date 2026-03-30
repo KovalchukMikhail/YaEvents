@@ -3,9 +3,26 @@
     public class Event
     {
         public int Id { get; init; }
-        public string Title { get; set; }
-        public string Description { get; set; }
+        public required string Title { get; set; }
+        public required string Description { get; set; }
         public DateTime StartAt { get; set; }
         public DateTime EndAt { get; set; }
+
+
+        public override bool Equals(object? obj)
+        {
+                return obj is not null
+                    && obj is Event curEvent
+                    && Id == curEvent.Id
+                    && Title == curEvent.Title
+                    && Description == curEvent.Description
+                    && StartAt == curEvent.StartAt
+                    && EndAt == curEvent.EndAt;
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Id, Title, Description, StartAt, EndAt);
+        }
     }
 }
