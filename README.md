@@ -4,6 +4,16 @@
 ## Общая информация о проекте
 **YaEvents** представляет сервис для управления мероприятиями на ASP.NET Core Web API/
 
+## Запуск сервиса
+**Запуск из командной строки Windows**
+1. Из папки проекта содержащий файл **YaEvents.slnx** выполнить команду **dotnet run -lp https**
+2. Открыть браузер и перейти по адресу **https://localhost:7067/swagger/index.html**
+
+## Запуск тестов
+**Запуск из командной строки Windows**
+1. Из папки проекта содержащий файл **YaEvents.slnx** выполнить команду **dotnet test**
+
+
 ## Изменения в рамках второго спринта
 1. Реализован middleware **ExceptionHandlingMiddleware** для глобальной обработки исключений. В middleware реализовано логирование ошибок.
 middleware расположен в namespace **YaEvents.Application.Middleware**. Формат ответа при ошибках Problem Details (RFC 7807).
@@ -39,12 +49,4 @@ middleware расположен в namespace **YaEvents.Application.Middleware**
 запрос: **https://localhost:7067/events?title=%D1%82&from=2020-01-01&to=2025-01-01&page=0&pageSize=10**
 ответ: **{"title":"В запросе на получение событий переданы некорректные параметры.","status":400,"detail":"Детали ошибки: Номер страницы не может быть меньше 1. "}**
 
-## Запуск сервиса
-**Запуск из командной строки Windows**
-1. Из папки проекта содержащий файл **YaEvents.slnx** выполнить команду **dotnet run -lp https**
-2. Открыть браузер и перейти по адресу **https://localhost:7067/swagger/index.html**
-
-## Запуск тестов
-**Запуск из командной строки Windows**
-1. Из папки проекта содержащий файл **YaEvents.slnx** выполнить команду **dotnet test**
 
