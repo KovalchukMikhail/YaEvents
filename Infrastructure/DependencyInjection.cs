@@ -12,6 +12,7 @@ namespace YaEvents.Infrastructure
         public static IServiceCollection AddInfrastructure(this IServiceCollection services)
         {
             services.AddScoped<IRepository<Event>, EventsRepository>();
+            services.AddScoped<IRepository<Booking>, BookingsRepository>();
 
             return services;
         }
