@@ -1,7 +1,7 @@
 ﻿using YaEvents.Data.Models;
 using YaEvents.Infrastructure.Repositories.Interfaces;
 
-namespace YaEvents.Infrastructure.Repositories.EventsRepository
+namespace YaEvents.Infrastructure.Repositories.BookingsRepository
 {
     public class BookingsRepository : IRepository<Booking>
     {
