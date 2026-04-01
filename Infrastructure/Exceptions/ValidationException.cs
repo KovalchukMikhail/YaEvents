@@ -5,7 +5,7 @@ namespace YaEvents.Infrastructure.Exceptions
     public class ValidationException : Exception
     {
         public ModelStateDictionary? ModelState { get; set; }
-        public int? EntityId { get; set; }
+        public Guid? EntityId { get; set; }
 
         public ValidationException() { }
         public ValidationException(string message) : base(message) { }
