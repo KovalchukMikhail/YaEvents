@@ -44,25 +44,5 @@ namespace YaEvents.Tests.Presentation.Endpoints
             Assert.NotNull(result as Microsoft.AspNetCore.Http.HttpResults.Accepted<BookingInfo>);
 
         }
-        [Fact]
-        public async Task PostBooking_NotExistingEvent_ThrowNotFoundException()
-        {
-            //Arrange
-            _mockEventService.Setup(m => m.GetEvent(It.IsAny<Guid>())).ReturnsAsync((EventDto?)null);
-
-            //Act & Assert
-            await Assert.ThrowsAsync<NotFoundException>(async () => await EventEndpoints.PostBooking(Guid.NewGuid(), _mockEventService.Object, _mockBookingService.Object, _mockHttpContext.Object));
-        }
-
-        [Fact]
-        public async Task PostBooking_EventWithRemovedStatus_ThrowValidationException()
-        {
-            //Arrange
-            var requiredEvent = new EventDto(Guid.NewGuid(), "Title", "Description", DateTime.Parse("2010.01.01"), DateTime.Parse("2011.01.01"), Infrastructure.Enums.EventStatus.Removed);
-            _mockEventService.Setup(m => m.GetEvent(It.IsAny<Guid>())).ReturnsAsync(requiredEvent);
-
-            //Act & Assert
-            await Assert.ThrowsAsync<ValidationException>(async () => await EventEndpoints.PostBooking(Guid.NewGuid(), _mockEventService.Object, _mockBookingService.Object, _mockHttpContext.Object));
-        }
     }
 }

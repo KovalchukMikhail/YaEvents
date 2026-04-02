@@ -6,7 +6,9 @@ using YaEvents.Application.Services.BookingService;
 using YaEvents.Data.Dto;
 using YaEvents.Data.Models;
 using YaEvents.Infrastructure.Enums;
+using YaEvents.Infrastructure.Exceptions;
 using YaEvents.Infrastructure.Repositories.Interfaces;
+using YaEvents.Presentation.Endpoints;
 
 namespace YaEvents.Tests.Application.Services
 {
@@ -16,6 +18,7 @@ namespace YaEvents.Tests.Application.Services
         private readonly Mock<IRepository<Booking>> _mockBookingRepository;
         private readonly Mock<IRepository<Event>> _mockEventRepository;
         private readonly List<Booking> _bookings;
+        private readonly Event _existingEvent;
 
         public BookingServiceTests()
         {
@@ -30,30 +33,53 @@ namespace YaEvents.Tests.Application.Services
                     new Booking{Id = Guid.NewGuid(), EventId = Guid.NewGuid(), CreatedAt = DateTime.Parse("2001.01.01"), Status = BookingStatus.Pending},
                     new Booking{Id = Guid.NewGuid(), EventId = Guid.NewGuid(), CreatedAt = DateTime.Parse("2002.01.01"), Status = BookingStatus.Pending}
                 ];
+
+            _existingEvent = new Event
+            {
+                Id = Guid.NewGuid(),
+                Title = "Title",
+                Description = "Description",
+                StartAt = DateTime.Parse("2010.01.01"),
+                EndAt = DateTime.Parse("2011.01.01"),
+                Status = Infrastructure.Enums.EventStatus.Existing
+            };
         }
 
         [Fact]
-        public async Task CreateBookingAsync_CorrectParam_CallRepositoryAddMethod()
+        public async Task CreateBookingAsync_CorrectParam_CallBookingRepositoryAddMethod()
         {
             //Arrange
-            var eventId = Guid.NewGuid();
             _mockBookingRepository.Setup(m => m.Add(It.IsAny<Booking>()));
+            _mockEventRepository.Setup(m => m.Get(It.IsAny<Guid>())).ReturnsAsync(_existingEvent);
 
             //Act
-            await _bookingService.CreateBookingAsync(eventId);
+            await _bookingService.CreateBookingAsync(_existingEvent.Id);
 
             //Assert
             _mockBookingRepository.Verify(repo => repo.Add(It.IsAny<Booking>()), Times.Once);
         }
         [Fact]
-        public async Task CreateBookingAsync_CorrectParam_ReturnCorrectBookingInfoWithPendingStatus()
+        public async Task CreateBookingAsync_CorrectParam_CallEventRepositoryGetMethod()
         {
             //Arrange
-            var eventId = Guid.NewGuid();
+            _mockEventRepository.Setup(m => m.Get(It.IsAny<Guid>())).ReturnsAsync(_existingEvent);
             _mockBookingRepository.Setup(m => m.Add(It.IsAny<Booking>()));
 
             //Act
-            var result = await _bookingService.CreateBookingAsync(eventId);
+            await _bookingService.CreateBookingAsync(_existingEvent.Id);
+
+            //Assert
+            _mockEventRepository.Verify(repo => repo.Get(It.IsAny<Guid>()), Times.Once);
+        }
+        [Fact]
+        public async Task CreateBookingAsync_CorrectParam_ReturnCorrectBookingInfoWithPendingStatus()
+        {
+            //Arrange
+            _mockEventRepository.Setup(m => m.Get(It.IsAny<Guid>())).ReturnsAsync(_existingEvent);
+            _mockBookingRepository.Setup(m => m.Add(It.IsAny<Booking>()));
+
+            //Act
+            var result = await _bookingService.CreateBookingAsync(_existingEvent.Id);
 
             //Assert
             Assert.True(result is BookingInfo && result?.Status == BookingStatus.Pending);
@@ -63,18 +89,45 @@ namespace YaEvents.Tests.Application.Services
         public async Task CreateBookingAsync_MethodRunSeveralTimesWithOneEventId_ReturnDifferentBookingInfo()
         {
             //Arrange
-            var eventId = Guid.NewGuid();
+            _mockEventRepository.Setup(m => m.Get(It.IsAny<Guid>())).ReturnsAsync(_existingEvent);
             _mockBookingRepository.Setup(m => m.Add(It.IsAny<Booking>()));
 
             //Act
-            var bookingInfoFirst = _bookingService.CreateBookingAsync(eventId);
-            var bookingInfoSecond = _bookingService.CreateBookingAsync(eventId);
+            var bookingInfoFirst = _bookingService.CreateBookingAsync(_existingEvent.Id);
+            var bookingInfoSecond = _bookingService.CreateBookingAsync(_existingEvent.Id);
             await Task.WhenAll(bookingInfoFirst, bookingInfoSecond);
 
             //Assert
             Assert.NotEqual((await bookingInfoFirst)?.Id, (await bookingInfoSecond)?.Id);
         }
+        [Fact]
+        public async Task CreateBookingAsync_NotExistingEvent_ThrowNotFoundException()
+        {
+            //Arrange
+            _mockEventRepository.Setup(m => m.Get(It.IsAny<Guid>())).ReturnsAsync((Event?)null);
 
+            //Act & Assert
+            await Assert.ThrowsAsync<NotFoundException>(async () => await _bookingService.CreateBookingAsync(Guid.NewGuid()));
+        }
+
+        [Fact]
+        public async Task CreateBookingAsync_EventWithRemovedStatus_ThrowValidationException()
+        {
+            //Arrange
+            var removedEvent = new Event
+            {
+                Id = Guid.NewGuid(),
+                Title = "Title",
+                Description = "Description",
+                StartAt = DateTime.Parse("2010.01.01"),
+                EndAt = DateTime.Parse("2011.01.01"),
+                Status = Infrastructure.Enums.EventStatus.Removed
+            };
+            _mockEventRepository.Setup(m => m.Get(It.IsAny<Guid>())).ReturnsAsync(removedEvent);
+
+            //Act & Assert
+            await Assert.ThrowsAsync<ValidationException>(async () => await _bookingService.CreateBookingAsync(Guid.NewGuid()));
+        }
         [Fact]
         public async Task GetBookingByIdAsync_CorrectParam_CallRepositoryGetMethod()
         {
@@ -127,9 +180,8 @@ namespace YaEvents.Tests.Application.Services
         public async Task ProcessBookings_BookingsWithSourceStatusPending_BookingsWithStatusConfirmed()
         {
             //Arrange
-            var existingEvent = new Event { Id = Guid.NewGuid(), Title = "Event001", Description = "Event", StartAt = DateTime.Parse("2000.01.01"), EndAt = DateTime.Parse("2001.01.01"), Status = EventStatus.Existing };
             _mockBookingRepository.Setup(m => m.GetAll()).ReturnsAsync(_bookings);
-            _mockEventRepository.Setup(m => m.Get(It.IsAny<Guid>())).ReturnsAsync(existingEvent);
+            _mockEventRepository.Setup(m => m.Get(It.IsAny<Guid>())).ReturnsAsync(_existingEvent);
 
             //Act
             await _bookingService.ProcessBookings();
@@ -137,35 +189,6 @@ namespace YaEvents.Tests.Application.Services
             //Assert
             Assert.True(_bookings.All(b => b.Status == BookingStatus.Confirmed));
 
-        }
-
-        [Fact]
-        public async Task ProcessBookings_RemovedEvent_BookingsWithStatusRejected()
-        {
-            //Arrange
-            var existingEvent = new Event { Id = Guid.NewGuid(), Title = "Event001", Description = "Event", StartAt = DateTime.Parse("2000.01.01"), EndAt = DateTime.Parse("2001.01.01"), Status = EventStatus.Removed };
-            _mockBookingRepository.Setup(m => m.GetAll()).ReturnsAsync(_bookings);
-            _mockEventRepository.Setup(m => m.Get(It.IsAny<Guid>())).ReturnsAsync(existingEvent);
-
-            //Act
-            await _bookingService.ProcessBookings();
-
-            //Assert
-            Assert.True(_bookings.All(b => b.Status == BookingStatus.Rejected));
-        }
-
-        [Fact]
-        public async Task ProcessBookings_NotExistingEvent_BookingsWithStatusRejected()
-        {
-            //Arrange
-            _mockBookingRepository.Setup(m => m.GetAll()).ReturnsAsync(_bookings);
-            _mockEventRepository.Setup(m => m.Get(It.IsAny<Guid>())).ReturnsAsync((Event?)null);
-
-            //Act
-            await _bookingService.ProcessBookings();
-
-            //Assert
-            Assert.True(_bookings.All(b => b.Status == BookingStatus.Rejected));
         }
     }
 }
