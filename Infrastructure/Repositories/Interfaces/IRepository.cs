@@ -2,11 +2,11 @@
 {
     public interface IRepository<T>
     {
-        IEnumerable<T> GetAll();
-        T? Get(int id);
-        T Add(T entity);
-        void Change(T entity);
-        bool Delete(int id);
+        Task<IEnumerable<T>> GetAll(CancellationToken token = default);
+        Task<T?> Get(Guid id, CancellationToken token = default);
+        Task<T> Add(T entity, CancellationToken token = default);
+        Task Change(T entity, CancellationToken token = default);
+        Task<bool> Delete(Guid id, CancellationToken token = default);
 
     }
 }

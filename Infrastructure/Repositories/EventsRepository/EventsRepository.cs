@@ -5,39 +5,36 @@ namespace YaEvents.Infrastructure.Repositories.EventsRepository
 {
     public class EventsRepository : IRepository<Event>
     {
-        protected static int _lastId = 0;
-        protected static Dictionary<int, Event> _events = new Dictionary<int, Event>();
-        public Event Add(Event entity)
+        protected static Dictionary<Guid, Event> _events = new Dictionary<Guid, Event>();
+        public async Task<Event> Add(Event entity, CancellationToken token = default)
         {
-            var newEvent = new Event
-            {
-                Id = ++_lastId,
-                Description = entity.Description,
-                EndAt = entity.EndAt,
-                StartAt = entity.StartAt,
-                Title = entity.Title
-            };
-            _events[newEvent.Id] = newEvent;
+            _events[entity.Id] = entity;
 
-            return newEvent;
+            return entity;
         }
 
-        public void Change(Event entity)
+        public async Task Change(Event entity, CancellationToken token = default)
         {
             _events[entity.Id] = entity;
         }
 
-        public bool Delete(int id)
+        public async Task<bool> Delete(Guid id, CancellationToken token = default)
         {
-            return _events.Remove(id);
+            if (_events[id].Status == Enums.EventStatus.Removed)
+                return false;
+            else
+            {
+                _events[id].Status = Enums.EventStatus.Removed;
+                return true;
+            }
         }
 
-        public Event? Get(int id)
+        public async Task<Event?> Get(Guid id, CancellationToken token = default)
         {
             return _events.GetValueOrDefault(id);
         }
 
-        public IEnumerable<Event> GetAll()
+        public async Task<IEnumerable<Event>> GetAll(CancellationToken token = default)
         {
             return _events.Values;
         }

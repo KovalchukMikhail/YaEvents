@@ -2,6 +2,7 @@
 using YaEvents.Application.Services.Interfaces;
 using YaEvents.Data.Dto;
 using YaEvents.Data.Models;
+using YaEvents.Infrastructure.Enums;
 using YaEvents.Infrastructure.Repositories.Interfaces;
 
 namespace YaEvents.Application.Services.EventService
@@ -13,9 +14,9 @@ namespace YaEvents.Application.Services.EventService
         {
             _repository = repository;
         }
-        public EventDto[] GetEvents(string? title = null, DateTime? from = null, DateTime? to = null)
+        public async Task<EventDto[]> GetEvents(string? title = null, DateTime? from = null, DateTime? to = null, CancellationToken token = default)
         {
-            IEnumerable<Event> events = _repository.GetAll();
+            IEnumerable<Event> events = await _repository.GetAll(token: token);
             title = title?.Trim();
 
             if (!string.IsNullOrEmpty(title))
@@ -27,57 +28,59 @@ namespace YaEvents.Application.Services.EventService
             if (to != null)
                 events = events.Where(e => e.EndAt <= to);
 
-            return events.Select(e => new EventDto(e.Id, e.Title, e.Description, e.StartAt, e.EndAt))
+            return events.Select(e => new EventDto(e.Id, e.Title, e.Description, e.StartAt, e.EndAt, e.Status))
                          .ToArray();
         }
-        public EventDto? GetEvent(int id)
+        public async Task<EventDto?> GetEvent(Guid id, CancellationToken token = default)
         {
-            var requiredEvent = _repository.Get(id);
+            var requiredEvent = await _repository.Get(id, token: token);
             if (requiredEvent != null)
             {
-                return new EventDto(requiredEvent.Id, requiredEvent.Title, requiredEvent.Description, requiredEvent.StartAt, requiredEvent.EndAt);
+                return new EventDto(requiredEvent.Id, requiredEvent.Title, requiredEvent.Description, requiredEvent.StartAt, requiredEvent.EndAt, requiredEvent.Status);
             }
             else
                 return null;
         }
 
-        public EventDto PostEvent(EventDtoLite eventDto)
+        public async Task<EventDto> PostEvent(EventDtoLite eventDto, CancellationToken token = default)
         {
             var newEvent = new Event
             {
+                Id = Guid.NewGuid(),
                 Title = eventDto.Title,
                 Description = eventDto.Description,
                 StartAt = eventDto.StartAt,
-                EndAt = eventDto.EndAt
+                EndAt = eventDto.EndAt,
+                Status = EventStatus.Existing
             };
 
-            newEvent = _repository.Add(newEvent);
+            await _repository.Add(newEvent, token: token);
 
-            return new EventDto(newEvent.Id, newEvent.Title, newEvent.Description, newEvent.StartAt, newEvent.EndAt);
+            return new EventDto(newEvent.Id, newEvent.Title, newEvent.Description, newEvent.StartAt, newEvent.EndAt, newEvent.Status);
         }
 
-        public bool PutEvent(int id, EventDtoLite eventDto)
+        public async Task<bool> PutEvent(Guid id, EventDtoLite eventDto, CancellationToken token = default)
         {
-            var requiredEvent = _repository.Get(id);
-            if (requiredEvent != null)
+            var requiredEvent = await _repository.Get(id, token: token);
+            if (requiredEvent != null && requiredEvent.Status == EventStatus.Existing)
             {
                 requiredEvent.Title = eventDto.Title;
                 requiredEvent.Description = eventDto.Description;
                 requiredEvent.StartAt = eventDto.StartAt;
                 requiredEvent.EndAt = eventDto.EndAt;
 
-                _repository.Change(requiredEvent);
+                await _repository.Change(requiredEvent, token: token);
 
                 return true;
             }
             else
                 return false;
         }
-        public bool DeleteEvent(int id)
+        public async Task<bool> DeleteEvent(Guid id, CancellationToken token = default)
         {
-            return _repository.Delete(id);
+            return await _repository.Delete(id, token: token);
         }
-        public PaginatedResult<EventDto> GetEventsWithPagination(EventDto[] sourceEvents, int pageNumber, int pageSize)
+        public async Task<PaginatedResult<EventDto>> GetEventsWithPagination(EventDto[] sourceEvents, int pageNumber, int pageSize, CancellationToken token = default)
         {
             var events = sourceEvents.Skip((pageNumber - 1) * pageSize)
                                      .Take(pageSize)
