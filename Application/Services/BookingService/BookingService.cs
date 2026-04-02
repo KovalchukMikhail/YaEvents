@@ -1,7 +1,9 @@
-﻿using YaEvents.Application.Services.Interfaces;
+﻿using YaEvents.Application.Services.EventService;
+using YaEvents.Application.Services.Interfaces;
 using YaEvents.Data.Dto;
 using YaEvents.Data.Models;
 using YaEvents.Infrastructure.Enums;
+using YaEvents.Infrastructure.Exceptions;
 using YaEvents.Infrastructure.Repositories.EventsRepository;
 using YaEvents.Infrastructure.Repositories.Interfaces;
 
@@ -19,6 +21,13 @@ namespace YaEvents.Application.Services.BookingService
         }
         public async Task<BookingInfo> CreateBookingAsync(Guid eventID, CancellationToken token = default)
         {
+            var requiredEvent = await _eventRepository.Get(eventID, token);
+
+            if (requiredEvent == null)
+                throw new NotFoundException("Не удалось создать объект бронирования так как объект события с указанным Id отсутствует") { EntityId = eventID };
+            else if(requiredEvent.Status == EventStatus.Removed)
+                throw new ValidationException("Не удалось создать объект бронирования так как объект события помечен как удаленный") { EntityId = eventID };
+            
             var newBooking = new Booking()
             {
                 Id = Guid.NewGuid(),
@@ -60,24 +69,11 @@ namespace YaEvents.Application.Services.BookingService
         public async Task ProcessBookings(CancellationToken token = default)
         {
             var bookings = await _bookingRepository.GetAll(token);
-            foreach (var booking in bookings)
+            foreach (var booking in bookings.Where(b => b.Status == BookingStatus.Pending))
             {
-                var curEvent = await _eventRepository.Get(booking.EventId, token);
-                if (curEvent == null || curEvent.Status == EventStatus.Removed)
-                {
-                    if (booking.Status != BookingStatus.Rejected)
-                    {
-                        await Task.Delay(2000, token);
-                        booking.Status = BookingStatus.Rejected;
-                        booking.ProcessedAt = DateTime.Now;
-                    }
-                }
-                else if (booking.Status == BookingStatus.Pending)
-                {
-                    await Task.Delay(2000, token);
-                    booking.Status = BookingStatus.Confirmed;
-                    booking.ProcessedAt = DateTime.Now;
-                }
+                await Task.Delay(2000, token);
+                booking.Status = BookingStatus.Confirmed;
+                booking.ProcessedAt = DateTime.Now;
             }
         }
     }
