@@ -13,7 +13,7 @@ namespace YaEvents.Infrastructure.Repositories.EventsRepository
             return entity;
         }
 
-        public async Task Change(Event entity, CancellationToken token = default)
+        public async Task Update(Event entity, CancellationToken token = default)
         {
             _events[entity.Id] = entity;
         }
