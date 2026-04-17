@@ -13,7 +13,7 @@
 **Запуск из командной строки Windows**
 1. Из папки проекта содержащий файл **YaEvents.slnx** выполнить команду **dotnet test**
 
-## Изменения в рамках четвертого спринта
+## Изменения в рамках четвертого спринта 
 1. В сущность Event добавлены свойства TotalSeats и AvailableSeats. В сущность Event добавлены методы TryReserveSeats(int count = 1) и ReleaseSeats(int count = 1).
 Обновлены DTO сущности CreateEvent и EventInfo. При создании нового события обязателен ввод TotalSeats, значение должно быть больше 0.
 2. В BookingService.CreateBookingAsync критическая секция защищена с помощью SemaphoreSlim (в задании lock, но lock не компилируется с await).
