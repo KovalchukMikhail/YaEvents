@@ -1,9 +1,11 @@
-﻿using YaEvents.Application.Services.EventService;
+﻿using Microsoft.AspNetCore.Mvc.Infrastructure;
+using YaEvents.Application.Services.EventService;
 using YaEvents.Application.Services.Interfaces;
 using YaEvents.Data.Dto;
 using YaEvents.Data.Models;
 using YaEvents.Infrastructure.Enums;
 using YaEvents.Infrastructure.Exceptions;
+using YaEvents.Infrastructure.Repositories.BookingsRepository;
 using YaEvents.Infrastructure.Repositories.EventsRepository;
 using YaEvents.Infrastructure.Repositories.Interfaces;
 
@@ -12,31 +14,47 @@ namespace YaEvents.Application.Services.BookingService
     public class BookingService : IBookingService
     {
 
-        protected readonly IRepository<Booking> _bookingRepository;
+        protected readonly BookingsRepository _bookingRepository;
         protected readonly IRepository<Event> _eventRepository;
-        public BookingService(IRepository<Booking> repository, IRepository<Event> eventRepository)
+        protected readonly ILogger<BookingService> _logger;
+        protected static readonly SemaphoreSlim _bookingSemaphore = new (1, 1);
+        protected static readonly SemaphoreSlim _processingSemaphore = new (1, 1);
+        public BookingService(BookingsRepository repository, IRepository<Event> eventRepository, ILogger<BookingService> logger)
         {
             _bookingRepository = repository;
             _eventRepository = eventRepository;
+            _logger = logger;
         }
         public async Task<BookingInfo> CreateBookingAsync(Guid eventID, CancellationToken token = default)
         {
             var requiredEvent = await _eventRepository.Get(eventID, token);
-
             if (requiredEvent == null)
                 throw new NotFoundException("Не удалось создать объект бронирования так как объект события с указанным Id отсутствует") { EntityId = eventID };
-            else if(requiredEvent.Status == EventStatus.Removed)
+            else if (requiredEvent.Status == EventStatus.Removed)
                 throw new ValidationException("Не удалось создать объект бронирования так как объект события помечен как удаленный") { EntityId = eventID };
-            
-            var newBooking = new Booking()
-            {
-                Id = Guid.NewGuid(),
-                CreatedAt = DateTime.Now,
-                EventId = eventID,
-                Status = BookingStatus.Pending
-            };
 
-            await _bookingRepository.Add(newBooking, token: token);
+            await _bookingSemaphore.WaitAsync();
+            Booking newBooking = null;
+            try
+            {
+                if(!requiredEvent.TryReserveSeats())
+                    throw new NoAvailableSeatsException("No available seats for this event") { EntityId = eventID };
+
+                await _eventRepository.Update(requiredEvent);
+                newBooking = new Booking()
+                {
+                    Id = Guid.NewGuid(),
+                    CreatedAt = DateTime.Now,
+                    EventId = eventID,
+                    Status = BookingStatus.Pending
+                };
+
+                await _bookingRepository.Add(newBooking, token: token);
+            }
+            finally
+            {
+                _bookingSemaphore.Release();
+            }
 
             return new BookingInfo
             (
@@ -68,12 +86,65 @@ namespace YaEvents.Application.Services.BookingService
 
         public async Task ProcessBookings(CancellationToken token = default)
         {
-            var bookings = await _bookingRepository.GetAll(token);
-            foreach (var booking in bookings.Where(b => b.Status == BookingStatus.Pending))
+            var pendingBookings = await _bookingRepository.GetPending(token);
+            var tasks = pendingBookings.Select(booking => ProcessBookingAsync(booking, token)).ToList();
+
+            await Task.WhenAll(tasks);
+        }
+        public async Task ProcessBookingAsync(Booking booking, CancellationToken token = default)
+        {
+            var requiredEventTask = _eventRepository.Get(booking.EventId, token);
+
+            await Task.WhenAll(requiredEventTask, Task.Delay(2000, token));
+            var requiredEvent = requiredEventTask.Result;
+
+            _logger.LogInformation("Обрабатывается бронирование Id = {id}", booking.Id);
+
+            await _processingSemaphore.WaitAsync();
+
+            try
             {
-                await Task.Delay(2000, token);
-                booking.Status = BookingStatus.Confirmed;
-                booking.ProcessedAt = DateTime.Now;
+                if (requiredEvent == null)
+                    throw new ValidationException("Не удалось обработать объект бронирования так как объект события отсутствует") { EntityId = booking.Id };
+                else if (requiredEvent.Status == EventStatus.Removed)
+                    throw new ValidationException("Не удалось обработать объект бронирования так как объект события помечен как удаленный") { EntityId = booking.Id };
+
+                booking.Confirm();
+                await _bookingRepository.Update(booking);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                await RejectBookingAsync(booking, requiredEvent);
+
+                throw;
+            }
+            finally
+            {
+                _processingSemaphore.Release();
+            }
+
+        }
+
+        public async Task RejectBookingAsync(Booking booking, Event? curEvent, CancellationToken token = default)
+        {
+            if (curEvent == null || curEvent.Id != booking.EventId)
+            {
+                curEvent = await _eventRepository.Get(booking.EventId, token);
+            }
+                
+            booking.Reject();
+            if (curEvent != null)
+            {
+                curEvent.ReleaseSeats();
+                await Task.WhenAll(_bookingRepository.Update(booking), _eventRepository.Update(curEvent));
+            }
+            else
+            {
+                await _bookingRepository.Update(booking);
             }
         }
     }

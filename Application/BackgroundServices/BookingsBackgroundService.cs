@@ -1,6 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using YaEvents.Application.Services.Interfaces;
 using YaEvents.Data.Models;
+using YaEvents.Infrastructure.Exceptions;
 using YaEvents.Infrastructure.Repositories.EventsRepository;
 using YaEvents.Infrastructure.Repositories.Interfaces;
 
@@ -33,6 +34,10 @@ namespace YaEvents.Application.BackgroundServices
                 {
                     break;
                 }
+                catch(ValidationException validationException)
+                {
+                    _logger.LogWarning(validationException, "Ошибка при обработке бронирования");
+                }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Ошибка при обработке бронирования");
@@ -43,4 +48,7 @@ namespace YaEvents.Application.BackgroundServices
             _logger.LogInformation("BookingsBackgroundService остановлен");
         }
     }
+
+
+
 }
