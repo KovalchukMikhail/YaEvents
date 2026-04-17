@@ -46,32 +46,32 @@ namespace YaEvents.Presentation.Controllers
                 throw new NotFoundException("Не удалось получить объект события") { EntityId = id };
         }
         [HttpPost]
-        public async Task<IActionResult> PostEvent([FromBody] EventDtoLite eventDto, CancellationToken token)
+        public async Task<IActionResult> PostEvent([FromBody] CreateEvent createEvent, CancellationToken token)
         {
-            if(!CompareEventDates(eventDto.StartAt, eventDto.EndAt))
+            if(!CompareEventDates(createEvent.StartAt, createEvent.EndAt))
             {
                 ModelState.AddModelError("EndAt", "Дата окончания события должна быть позже даты начала");
 
                 throw new ValidationException("В запросе на добавление нового события переданы некорректные параметры.") { ModelState = ModelState };
             }
 
-            var newEventDto = await _eventService.PostEvent(eventDto, token: token);
+            var newEventDto = await _eventService.PostEvent(createEvent, token: token);
             var url = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}{HttpContext.Request.Path}/{newEventDto.Id}";
 
             return Created(url, newEventDto);
         }
         [HttpPut]
         [Route("{id:Guid}")]
-        public async Task<IActionResult> PutEvent(Guid id, [FromBody] EventDtoLite eventDto, CancellationToken token)
+        public async Task<IActionResult> PutEvent(Guid id, [FromBody] CreateEvent createEvent, CancellationToken token)
         {
-            if (!CompareEventDates(eventDto.StartAt, eventDto.EndAt))
+            if (!CompareEventDates(createEvent.StartAt, createEvent.EndAt))
             {
                 ModelState.AddModelError("EndAt", "Дата окончания события должна быть позже даты начала");
 
                 throw new ValidationException("В запросе на редактирование события переданы некорректные параметры.") { ModelState = ModelState, EntityId = id };
             }
 
-            if (await _eventService.PutEvent(id, eventDto, token: token))
+            if (await _eventService.PutEvent(id, createEvent, token: token))
                 return Ok();
             else
                 throw new NotFoundException("Не удалось получить объект события") { EntityId = id };
