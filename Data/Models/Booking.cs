@@ -11,6 +11,16 @@ namespace YaEvents.Data.Models
         public required DateTime CreatedAt { get; init; }
         public DateTime? ProcessedAt { get; set; }
 
+        public void Confirm()
+        {
+            Status = BookingStatus.Confirmed;
+            ProcessedAt = DateTime.Now;
+        }
+        public void Reject()
+        {
+            Status = BookingStatus.Rejected;
+            ProcessedAt = DateTime.Now;
+        }
         public override bool Equals(object? obj)
         {
             return obj is not null
