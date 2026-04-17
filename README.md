@@ -22,7 +22,7 @@ middleware расположен в namespace **YaEvents.Application.Middleware**
 Фильтрация реализована в сервисе **EventService**
 
 3. Добавлена пагинация событий. Валидация параметров реализована в контроллере **EventsController**.
-Пагинация реализована в сервисе **EventService**. 
+Пагинация реализована в сервисе **EventService**.
 
 4. Добавлены юнит-тесты реализующие проверку успешных и неуспешных сценариев работы методов класса **EventService**.
 Тесты реализованы в классе **EventServiceTests** расположенном в namespace **YaEvents.Tests.Application.Services**
