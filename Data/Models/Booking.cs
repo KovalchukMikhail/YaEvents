@@ -10,16 +10,25 @@ namespace YaEvents.Data.Models
         public required BookingStatus Status { get; set; }
         public required DateTime CreatedAt { get; init; }
         public DateTime? ProcessedAt { get; set; }
+        public SemaphoreSlim BookingSemaphore { get; } = new(1, 1);
 
-        public void Confirm()
+        public bool Confirm()
         {
+            if(Status == BookingStatus.Confirmed)
+                return false;
+
             Status = BookingStatus.Confirmed;
             ProcessedAt = DateTime.Now;
+            return true;
         }
-        public void Reject()
+        public bool Reject()
         {
+            if (Status == BookingStatus.Rejected)
+                return false;
+
             Status = BookingStatus.Rejected;
             ProcessedAt = DateTime.Now;
+            return true;
         }
         public override bool Equals(object? obj)
         {
