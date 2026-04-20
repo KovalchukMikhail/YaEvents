@@ -66,7 +66,11 @@ namespace YaEvents.Application.Services.EventService
         public async Task<bool> PutEvent(Guid id, CreateEvent createEvent, CancellationToken token = default)
         {
             var requiredEvent = await _repository.Get(id, token: token);
-            if (requiredEvent != null && requiredEvent.Status == EventStatus.Existing)
+            if (requiredEvent == null || requiredEvent.Status == EventStatus.Removed)
+                return false;
+
+            await requiredEvent.EventSemaphore.WaitAsync();
+            try
             {
                 var bookedSeats = requiredEvent.TotalSeats - requiredEvent.AvailableSeats;
                 if (bookedSeats > createEvent.TotalSeats)
@@ -83,8 +87,10 @@ namespace YaEvents.Application.Services.EventService
 
                 return true;
             }
-            else
-                return false;
+            finally
+            {
+                requiredEvent.EventSemaphore.Release();
+            }
         }
         public async Task<bool> DeleteEvent(Guid id, CancellationToken token = default)
         {
