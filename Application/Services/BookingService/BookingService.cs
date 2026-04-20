@@ -17,8 +17,6 @@ namespace YaEvents.Application.Services.BookingService
         protected readonly BookingsRepository _bookingRepository;
         protected readonly IRepository<Event> _eventRepository;
         protected readonly ILogger<BookingService> _logger;
-        protected static readonly SemaphoreSlim _bookingSemaphore = new (1, 1);
-        protected static readonly SemaphoreSlim _processingSemaphore = new (1, 1);
         public BookingService(BookingsRepository repository, IRepository<Event> eventRepository, ILogger<BookingService> logger)
         {
             _bookingRepository = repository;
@@ -33,7 +31,7 @@ namespace YaEvents.Application.Services.BookingService
             else if (requiredEvent.Status == EventStatus.Removed)
                 throw new ValidationException("Не удалось создать объект бронирования так как объект события помечен как удаленный") { EntityId = eventID };
 
-            await _bookingSemaphore.WaitAsync();
+            await requiredEvent.EventSemaphore.WaitAsync();
             Booking newBooking = null;
             try
             {
@@ -53,7 +51,7 @@ namespace YaEvents.Application.Services.BookingService
             }
             finally
             {
-                _bookingSemaphore.Release();
+                requiredEvent.EventSemaphore.Release();
             }
 
             return new BookingInfo
@@ -100,33 +98,27 @@ namespace YaEvents.Application.Services.BookingService
 
             _logger.LogInformation("Обрабатывается бронирование Id = {id}", booking.Id);
 
-            await _processingSemaphore.WaitAsync();
+            if(requiredEvent == null)
+            {
+                await RejectBookingAsync(booking, requiredEvent);
+                throw new ValidationException("Не удалось обработать объект бронирования так как объект события отсутствует") { EntityId = booking.Id };
+            }
+            else if (requiredEvent.Status == EventStatus.Removed)
+            {
+                await RejectBookingAsync(booking, requiredEvent);
+                throw new ValidationException("Не удалось обработать объект бронирования так как объект события помечен как удаленный") { EntityId = booking.Id };
+            }
 
+            await booking.BookingSemaphore.WaitAsync();
             try
             {
-                if (requiredEvent == null)
-                    throw new ValidationException("Не удалось обработать объект бронирования так как объект события отсутствует") { EntityId = booking.Id };
-                else if (requiredEvent.Status == EventStatus.Removed)
-                    throw new ValidationException("Не удалось обработать объект бронирования так как объект события помечен как удаленный") { EntityId = booking.Id };
-
                 booking.Confirm();
                 await _bookingRepository.Update(booking);
             }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception)
-            {
-                await RejectBookingAsync(booking, requiredEvent);
-
-                throw;
-            }
             finally
             {
-                _processingSemaphore.Release();
+                booking.BookingSemaphore.Release();
             }
-
         }
 
         public async Task RejectBookingAsync(Booking booking, Event? curEvent, CancellationToken token = default)
@@ -135,16 +127,35 @@ namespace YaEvents.Application.Services.BookingService
             {
                 curEvent = await _eventRepository.Get(booking.EventId, token);
             }
-                
-            booking.Reject();
-            if (curEvent != null)
+            
+            await booking.BookingSemaphore.WaitAsync();
+            try
             {
-                curEvent.ReleaseSeats();
-                await Task.WhenAll(_bookingRepository.Update(booking), _eventRepository.Update(curEvent));
+                if(booking.Reject())
+                {
+                    if (curEvent != null)
+                    {
+                        await curEvent.EventSemaphore.WaitAsync();
+                        try
+                        {
+                            curEvent.ReleaseSeats();
+                            await Task.WhenAll(_bookingRepository.Update(booking), _eventRepository.Update(curEvent));
+                        }
+                        finally
+                        {
+                            curEvent.EventSemaphore.Release();
+                        }
+                    }
+                    else
+                    {
+                        await _bookingRepository.Update(booking);
+                    }
+                }
+
             }
-            else
+            finally
             {
-                await _bookingRepository.Update(booking);
+                booking.BookingSemaphore.Release();
             }
         }
     }
