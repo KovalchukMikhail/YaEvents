@@ -30,7 +30,7 @@ namespace YaEvents.Tests.Presentation.Endpoints
         public async Task PostBooking_CorrectParams_Code202()
         {
             //Arrange
-            var requiredEvent = new EventDto(Guid.NewGuid(), "Title", "Description", DateTime.Parse("2010.01.01"), DateTime.Parse("2011.01.01"), Infrastructure.Enums.EventStatus.Existing);
+            var requiredEvent = new EventInfo(Guid.NewGuid(), "Title", "Description", DateTime.Parse("2010.01.01"), DateTime.Parse("2011.01.01"), Infrastructure.Enums.EventStatus.Existing, 100, 100);
             var newBookingInfo = new BookingInfo(Guid.NewGuid(), requiredEvent.Id, BookingStatus.Pending, DateTime.Now, null);
             _mockEventService.Setup(m => m.GetEvent(It.IsAny<Guid>())).ReturnsAsync(requiredEvent);
             _mockBookingService.Setup(m => m.CreateBookingAsync(It.IsAny<Guid>())).ReturnsAsync(newBookingInfo);
