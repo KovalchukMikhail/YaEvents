@@ -16,11 +16,14 @@
 ## Изменения в рамках четвертого спринта 
 1. В сущность Event добавлены свойства TotalSeats и AvailableSeats. В сущность Event добавлены методы TryReserveSeats(int count = 1) и ReleaseSeats(int count = 1).
 Обновлены DTO сущности CreateEvent и EventInfo. При создании нового события обязателен ввод TotalSeats, значение должно быть больше 0.
-2. В BookingService.CreateBookingAsync критическая секция защищена с помощью SemaphoreSlim (в задании lock, но lock не компилируется с await).
-3. При создании брони если свободных мест нет выбрасывается исключение NoAvailableSeatsException и возвращается ответ 409 Conflict.
-4. Для обработки бронирований в фоновом сервисе BookingBackgroundService вызывается метод await bookingService.ProcessBookings(token); метод реализован в классе BookingService.
-Синхронизация работы по обработке бронирований производится с помощью SemaphoreSlim.
-5. Добавлены Unit-тесты:
+2. В сущность Event добавлено свойство(get) EventSemaphore.
+3. В сущность Booking добавлено свойство(get;) BookingSemaphore.
+4. В BookingService.CreateBookingAsync критическая секция защищена с помощью SemaphoreSlim (в задании lock, но lock не компилируется с await). SemaphoreSlim расположен в объекте Event.
+Это сделано чтобы блокировать только создания бронирований для одного и того же события. 
+5. При создании брони если свободных мест нет выбрасывается исключение NoAvailableSeatsException и возвращается ответ 409 Conflict.
+6. Для обработки бронирований в фоновом сервисе BookingBackgroundService вызывается метод await bookingService.ProcessBookings(token); метод реализован в классе BookingService.
+Синхронизация работы по обработке бронирований производится с помощью SemaphoreSlim. Используются объекты SemaphoreSlim из экземпляров Booking и Event.
+7. Добавлены Unit-тесты:
 Создание брони уменьшает AvailableSeats на 1.(CreateBookingAsync_CorrectParam_CorrectAvailableSeatsAfterBooking() класс BookingServiceTests);
 Создание нескольких броней (до лимита) — все успешны, у каждой уникальный Id.(CreateBookingAsync_MethodRunSeveralTimesWithOneEventId_ReturnDifferentBookingInfo() класс BookingServiceTests);
 После исчерпания мест следующая попытка выбрасывает NoAvailableSeatsException.(CreateBookingAsync_BookMoreThanAvailableSeats_ThrowNoAvailableSeatsException() класс BookingServiceTests);
