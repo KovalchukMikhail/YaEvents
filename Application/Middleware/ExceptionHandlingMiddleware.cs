@@ -79,6 +79,14 @@ namespace YaEvents.Application.Middleware
                         error.Detail = $"Id = {notFoundException.EntityId}";
                     }
                     break;
+                case NoAvailableSeatsException notAvailableSeatsException:
+                    httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
+                    error.Title = notAvailableSeatsException.Message;
+                    if (notAvailableSeatsException.EntityId != null)
+                    {
+                        error.Detail = $"EventId = {notAvailableSeatsException.EntityId}";
+                    }
+                    break;
                 default:
                     httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
                     error.Title = ex.GetType().Name;
