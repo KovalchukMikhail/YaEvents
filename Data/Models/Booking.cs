@@ -7,10 +7,22 @@ namespace YaEvents.Data.Models
     {
         public Guid Id { get; init; }
         public Guid EventId { get; set; }
-        public required BookingStatus Status { get; set; }
-        public required DateTime CreatedAt { get; init; }
+        public BookingStatus Status { get; set; }
+        public DateTime CreatedAt { get; set; }
         public DateTime? ProcessedAt { get; set; }
-        public SemaphoreSlim BookingSemaphore { get; } = new(1, 1);
+        public Event? Event { get; set; }
+
+        private Booking() { }
+
+        public Booking(Guid id, Guid eventId, BookingStatus status, DateTime createdAt, DateTime? processedAt, Event? curEvent)
+        {
+            Id = id;
+            EventId = eventId;
+            Status = status;
+            CreatedAt = createdAt;
+            ProcessedAt = processedAt;
+            Event = curEvent;
+        }
 
         public bool Confirm()
         {
@@ -18,7 +30,7 @@ namespace YaEvents.Data.Models
                 return false;
 
             Status = BookingStatus.Confirmed;
-            ProcessedAt = DateTime.Now;
+            ProcessedAt = DateTime.Now.ToUniversalTime();
             return true;
         }
         public bool Reject()
@@ -27,7 +39,7 @@ namespace YaEvents.Data.Models
                 return false;
 
             Status = BookingStatus.Rejected;
-            ProcessedAt = DateTime.Now;
+            ProcessedAt = DateTime.Now.ToUniversalTime();
             return true;
         }
         public override bool Equals(object? obj)
