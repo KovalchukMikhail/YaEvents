@@ -1,10 +1,14 @@
-﻿using Moq;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Moq;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using YaEvents.Application.Services.EventService;
+using YaEvents.Application.Services.Interfaces;
 using YaEvents.Data.Dto;
 using YaEvents.Data.Models;
+using YaEvents.Infrastructure.DataAccess;
 using YaEvents.Infrastructure.Enums;
 using YaEvents.Infrastructure.Repositories.Interfaces;
 
@@ -12,54 +16,78 @@ namespace YaEvents.Tests.Application.Services
 {
     public class EventServiceTests
     {
-        private readonly EventService _eventService;
-        private readonly Mock<IRepository<Event>> _mockRepository;
+        private readonly IEventService _eventService;
+        private readonly ServiceProvider _serviceProvider;
+        private readonly IServiceScope _scope;
+        //private readonly Mock<IRepository<Event>> _mockRepository;
         private readonly List<Event> _events;
 
         public EventServiceTests()
         {
+            var dbName = Guid.NewGuid().ToString();
+            var services = new ServiceCollection();
+            services.AddDbContext<AppDbContext>(options =>
+            options.UseInMemoryDatabase(dbName));
+            services.AddScoped<IEventService, EventService>();
 
             _events =
-                [
-                    new Event{Id = Guid.NewGuid(), Title = "Event001", Description = "Event", StartAt = DateTime.Parse("2000.01.01"), EndAt = DateTime.Parse("2001.01.01"), Status = EventStatus.Existing, TotalSeats = 100, AvailableSeats = 100},
-                    new Event{Id = Guid.NewGuid(), Title = "Event002", Description = "Event", StartAt = DateTime.Parse("2001.01.01"), EndAt = DateTime.Parse("2002.01.01"), Status = EventStatus.Existing, TotalSeats = 100, AvailableSeats = 100},
-                    new Event{Id = Guid.NewGuid(), Title = "Event003", Description = "Event", StartAt = DateTime.Parse("2002.01.01"), EndAt = DateTime.Parse("2003.01.01"), Status = EventStatus.Existing, TotalSeats = 100, AvailableSeats = 100},
-                    new Event{Id = Guid.NewGuid(), Title = "Event004", Description = "Event", StartAt = DateTime.Parse("2003.01.01"), EndAt = DateTime.Parse("2004.01.01"), Status = EventStatus.Existing, TotalSeats = 100, AvailableSeats = 100},
-                    new Event{Id = Guid.NewGuid(), Title = "Event005", Description = "Event", StartAt = DateTime.Parse("2004.01.01"), EndAt = DateTime.Parse("2005.01.01"), Status = EventStatus.Existing, TotalSeats = 100, AvailableSeats = 100},
-                    new Event{Id = Guid.NewGuid(), Title = "Event006", Description = "Event", StartAt = DateTime.Parse("2005.01.01"), EndAt = DateTime.Parse("2006.01.01"), Status = EventStatus.Existing, TotalSeats = 100, AvailableSeats = 100},
-                    new Event{Id = Guid.NewGuid(), Title = "Event007", Description = "Event", StartAt = DateTime.Parse("2006.01.01"), EndAt = DateTime.Parse("2007.01.01"), Status = EventStatus.Existing, TotalSeats = 100, AvailableSeats = 100},
-                    new Event{Id = Guid.NewGuid(), Title = "Event008", Description = "Event", StartAt = DateTime.Parse("2007.01.01"), EndAt = DateTime.Parse("2008.01.01"), Status = EventStatus.Existing, TotalSeats = 100, AvailableSeats = 100},
-                    new Event{Id = Guid.NewGuid(), Title = "Event009", Description = "Event", StartAt = DateTime.Parse("2008.01.01"), EndAt = DateTime.Parse("2009.01.01"), Status = EventStatus.Existing, TotalSeats = 100, AvailableSeats = 100},
-                    new Event{Id = Guid.NewGuid(), Title = "Event010", Description = "Event", StartAt = DateTime.Parse("2009.01.01"), EndAt = DateTime.Parse("2010.01.01"), Status = EventStatus.Existing, TotalSeats = 100, AvailableSeats = 100},
-                    new Event{Id = Guid.NewGuid(), Title = "Event011", Description = "Event", StartAt = DateTime.Parse("2010.01.01"), EndAt = DateTime.Parse("2011.01.01"), Status = EventStatus.Existing, TotalSeats = 100, AvailableSeats = 100},
-                    new Event{Id = Guid.NewGuid(), Title = "Event012", Description = "Event", StartAt = DateTime.Parse("2011.01.01"), EndAt = DateTime.Parse("2012.01.01"), Status = EventStatus.Existing, TotalSeats = 100, AvailableSeats = 100}
-                ];
+            [
+                new Event(Guid.NewGuid(), "Event001", "Event", DateTime.Parse("2000.01.01"), DateTime.Parse("2001.01.01"), EventStatus.Existing, 100, 100),
+                new Event(Guid.NewGuid(), "Event002", "Event", DateTime.Parse("2001.01.01"), DateTime.Parse("2002.01.01"), EventStatus.Existing, 100, 100),
+                new Event(Guid.NewGuid(), "Event003", "Event", DateTime.Parse("2002.01.01"), DateTime.Parse("2003.01.01"), EventStatus.Existing, 100, 100),
+                new Event(Guid.NewGuid(), "Event004", "Event", DateTime.Parse("2003.01.01"), DateTime.Parse("2004.01.01"), EventStatus.Existing, 100, 100),
+                new Event(Guid.NewGuid(), "Event005", "Event", DateTime.Parse("2004.01.01"), DateTime.Parse("2005.01.01"), EventStatus.Existing, 100, 100),
+                new Event(Guid.NewGuid(), "Event006", "Event", DateTime.Parse("2005.01.01"), DateTime.Parse("2006.01.01"), EventStatus.Existing, 100, 100),
+                new Event(Guid.NewGuid(), "Event007", "Event", DateTime.Parse("2006.01.01"), DateTime.Parse("2007.01.01"), EventStatus.Existing, 100, 100),
+                new Event(Guid.NewGuid(), "Event008", "Event", DateTime.Parse("2007.01.01"), DateTime.Parse("2008.01.01"), EventStatus.Existing, 100, 100),
+                new Event(Guid.NewGuid(), "Event009", "Event", DateTime.Parse("2008.01.01"), DateTime.Parse("2009.01.01"), EventStatus.Existing, 100, 100),
+                new Event(Guid.NewGuid(), "Event010", "Event", DateTime.Parse("2009.01.01"), DateTime.Parse("2010.01.01"), EventStatus.Existing, 100, 100),
+                new Event(Guid.NewGuid(), "Event011", "Event", DateTime.Parse("2010.01.01"), DateTime.Parse("2011.01.01"), EventStatus.Existing, 100, 100),
+                new Event(Guid.NewGuid(), "Event012", "Event", DateTime.Parse("2011.01.01"), DateTime.Parse("2012.01.01"), EventStatus.Existing, 100, 100)
+            ];
 
-            _mockRepository = new Mock<IRepository<Event>>();
-            _eventService = new EventService(_mockRepository.Object);
+            _serviceProvider = services.BuildServiceProvider();
+            _scope = _serviceProvider.CreateScope();
+            var appDbContext = _scope.ServiceProvider.GetService<AppDbContext>();
+            appDbContext.Events.AddRange(_events);
+            appDbContext.SaveChanges();
+
+            _eventService = _scope.ServiceProvider.GetRequiredService<IEventService>();
+
+            
+
+            //_mockRepository = new Mock<IRepository<Event>>();
+            //_eventService = new EventService(_mockRepository.Object);
         }
 
-        [Fact]
-        public async Task PostEvent_WhenEventAdded_CallRepositoryAdd()
+        public void Dispose()
         {
-            //Arrange
-            var sourceEventDtoLite = new CreateEvent
-            {
-                Title = "Title",
-                Description = "Description",
-                StartAt = DateTime.Parse("2010.01.01"),
-                EndAt = DateTime.Parse("2011.01.01")
-            };
-
-            _mockRepository.Setup(m => m.Add(It.IsAny<Event>()));
-
-            //Act
-            await _eventService.PostEvent(sourceEventDtoLite);
-
-
-            //Assert
-            _mockRepository.Verify(repo => repo.Add(It.IsAny<Event>()), Times.Once);
+            _scope.Dispose();
+            _serviceProvider.Dispose();
         }
+
+        //[Fact]
+        //public async Task PostEvent_WhenEventAdded_CallRepositoryAdd()
+        //{
+        //    //Arrange
+        //    var sourceEventDtoLite = new CreateEvent
+        //    {
+        //        Title = "Title",
+        //        Description = "Description",
+        //        StartAt = DateTime.Parse("2010.01.01"),
+        //        EndAt = DateTime.Parse("2011.01.01"),
+        //        TotalSeats = 3
+        //    };
+        //
+        //    _mockRepository.Setup(m => m.Add(It.IsAny<Event>()));
+        //
+        //    //Act
+        //    await _eventService.PostEvent(sourceEventDtoLite);
+        //
+        //
+        //    //Assert
+        //    _mockRepository.Verify(repo => repo.Add(It.IsAny<Event>()), Times.Once);
+        //}
 
         [Fact]
         public async Task PostEvent_WhenEventAdded_ReturnCorrectEventDto()
@@ -70,10 +98,9 @@ namespace YaEvents.Tests.Application.Services
                 Title = "Title",
                 Description = "Description",
                 StartAt = DateTime.Parse("2010.01.01"),
-                EndAt = DateTime.Parse("2011.01.01")
+                EndAt = DateTime.Parse("2011.01.01"),
+                TotalSeats = 3
             };
-
-            _mockRepository.Setup(m => m.Add(It.IsAny<Event>()));
 
             //Act
             var result = await _eventService.PostEvent(sourceEventDtoLite);
@@ -91,7 +118,6 @@ namespace YaEvents.Tests.Application.Services
         public async Task GetEvents_DefaultParameters_ReturnsAllEvents()
         {
             //Arrange
-            _mockRepository.Setup(m => m.GetAll()).ReturnsAsync(_events);
             EventInfo[] expectedResult = _events.Select(e => new EventInfo(e.Id, e.Title, e.Description, e.StartAt, e.EndAt, e.Status, e.TotalSeats, e.AvailableSeats)).ToArray();
 
             //Act
@@ -105,7 +131,6 @@ namespace YaEvents.Tests.Application.Services
         {
             //Arrange
             var title = "2";
-            _mockRepository.Setup(m => m.GetAll()).ReturnsAsync(_events);
             EventInfo[] expectedResult = 
             [
                 new EventInfo(_events[1].Id, "Event002", "Event", DateTime.Parse("2001.01.01"), DateTime.Parse("2002.01.01"), EventStatus.Existing, _events[1].TotalSeats, _events[1].AvailableSeats),
@@ -125,7 +150,7 @@ namespace YaEvents.Tests.Application.Services
             var title = "01";
             var from = DateTime.Parse("2007.06.01");
             var to = DateTime.Parse("2011.06.01");
-            _mockRepository.Setup(m => m.GetAll()).ReturnsAsync(_events);
+            
             EventInfo[] expectedResult =
             [
                 new EventInfo(_events[9].Id, "Event010", "Event", DateTime.Parse("2009.01.01"), DateTime.Parse("2010.01.01"), EventStatus.Existing, _events[9].TotalSeats, _events[9].AvailableSeats),
@@ -143,7 +168,7 @@ namespace YaEvents.Tests.Application.Services
         {
             //Arrange
             var from = DateTime.Parse("2007.06.01");
-            _mockRepository.Setup(m => m.GetAll()).ReturnsAsync(_events);
+            
             EventInfo[] expectedResult =
             [
                 new EventInfo(_events[8].Id, "Event009", "Event", DateTime.Parse("2008.01.01"), DateTime.Parse("2009.01.01"), EventStatus.Existing, _events[8].TotalSeats, _events[8].AvailableSeats),
@@ -163,7 +188,7 @@ namespace YaEvents.Tests.Application.Services
         {
             //Arrange
             var to = DateTime.Parse("2004.06.01");
-            _mockRepository.Setup(m => m.GetAll()).ReturnsAsync(_events);
+            
             EventInfo[] expectedResult =
             [
                 new EventInfo(_events[0].Id, "Event001", "Event", DateTime.Parse("2000.01.01"), DateTime.Parse("2001.01.01"), EventStatus.Existing, _events[0].TotalSeats, _events[0].AvailableSeats),
@@ -183,17 +208,8 @@ namespace YaEvents.Tests.Application.Services
         public async Task GetEvent_ExistedId_ReturnsCorrectEventDto()
         {
             //Arrange
-            var expectedEvent = new Event
-            {
-                Id = _events[0].Id,
-                Title = "Title",
-                Description = "Description",
-                StartAt = DateTime.Parse("2010.01.01"),
-                EndAt = DateTime.Parse("2011.01.01"),
-                Status = EventStatus.Existing,
-                TotalSeats = 100,
-                AvailableSeats = 100
-            };
+            var expectedEvent = _events[0];
+
             var expectedEventDto = new EventInfo
                 (
                     expectedEvent.Id,
@@ -206,10 +222,8 @@ namespace YaEvents.Tests.Application.Services
                     expectedEvent.AvailableSeats
                 );
 
-            _mockRepository.Setup(m => m.Get(It.IsAny<Guid>())).ReturnsAsync(expectedEvent);
-
             //Act
-            var result = await _eventService.GetEvent(_events[0].Id);
+            var result = await _eventService.GetEvent(expectedEvent.Id);
 
             //Assert
             Assert.Equal(result, expectedEventDto);
@@ -219,10 +233,9 @@ namespace YaEvents.Tests.Application.Services
         public async Task GetEvent_NoExistedId_ReturnsNull()
         {
             //Arrange
-            _mockRepository.Setup(m => m.Get(It.IsAny<Guid>())).ReturnsAsync((Event?)null);
 
             //Act
-            var result = await _eventService.GetEvent(_events[0].Id);
+            var result = await _eventService.GetEvent(Guid.NewGuid());
 
             //Assert
             Assert.Null(result);
@@ -232,7 +245,6 @@ namespace YaEvents.Tests.Application.Services
         public async Task PutEvent_ExistedId_ReturnTrue()
         {
             //Arrange
-            _mockRepository.Setup(m => m.Get(It.IsAny<Guid>())).ReturnsAsync(new Event() { Title = "Test", Description = "Test" });
 
             //Act
             var result = await _eventService.PutEvent(_events[0].Id, new CreateEvent() { Title = "Test", Description = "Test" });
@@ -246,10 +258,9 @@ namespace YaEvents.Tests.Application.Services
         public async Task PutEvent_NoExistedId_ReturnFalse()
         {
             //Arrange
-            _mockRepository.Setup(m => m.Get(It.IsAny<Guid>())).ReturnsAsync((Event?)null);
 
             //Act
-            var result = await _eventService.PutEvent(_events[0].Id, new CreateEvent() { Title = "Test", Description = "Test" });
+            var result = await _eventService.PutEvent(Guid.NewGuid(), new CreateEvent() { Title = "Test", Description = "Test" });
 
             //Assert
             Assert.False(result);
@@ -260,7 +271,6 @@ namespace YaEvents.Tests.Application.Services
         {
             //Arrange
             var id = _events[0].Id;
-            _mockRepository.Setup(m => m.Delete(id)).ReturnsAsync(true);
 
             //Act
             var result = await _eventService.DeleteEvent(id);
@@ -273,8 +283,7 @@ namespace YaEvents.Tests.Application.Services
         public async Task DeleteEvent_NoExistedId_ReturnFalse()
         {
             //Arrange
-            var id = _events[0].Id;
-            _mockRepository.Setup(m => m.Delete(id)).ReturnsAsync(false);
+            var id = Guid.NewGuid();
 
             //Act
             var result =  await _eventService.DeleteEvent(id);
