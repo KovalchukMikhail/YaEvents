@@ -14,33 +14,14 @@ namespace YaEvents.Application.Services.EventService
 {
     public class EventService : IEventService
     {
-        public static readonly ConcurrentDictionary<Guid, SemaphoreSlim> _eventSemaphores = new ConcurrentDictionary<Guid, SemaphoreSlim>();
-
-        protected readonly AppDbContext _appDbContext;
-        public EventService(AppDbContext appDbContext)
+        protected readonly IEventsRepository _eventRepository;
+        public EventService(IEventsRepository eventRepository)
         {
-            _appDbContext = appDbContext;
-        }
-        public async Task<EventInfo[]> GetEvents(string? title = null, DateTime? from = null, DateTime? to = null, CancellationToken token = default)
-        {
-            var events = _appDbContext.Events.Where(e => e.Status != EventStatus.Removed);
-            title = title?.Trim();
-
-            if (!string.IsNullOrEmpty(title))
-                events = events.Where(e => !string.IsNullOrEmpty(e.Title) && e.Title.Contains(title, StringComparison.OrdinalIgnoreCase));
-
-            if(from != null)
-                events = events.Where(e => e.StartAt >= from);
-
-            if (to != null)
-                events = events.Where(e => e.EndAt <= to);
-
-            return await events.Select(e => new EventInfo(e.Id, e.Title, e.Description, e.StartAt, e.EndAt, e.Status, e.TotalSeats, e.AvailableSeats))
-                         .ToArrayAsync();
+            _eventRepository = eventRepository;
         }
         public async Task<EventInfo?> GetEvent(Guid id, CancellationToken token = default)
         {
-            var requiredEvent = await _appDbContext.Events.FirstOrDefaultAsync(e => e.Id == id && e.Status != EventStatus.Removed);
+            var requiredEvent = await _eventRepository.Get(id, token);
             if (requiredEvent != null)
             {
                 return new EventInfo(requiredEvent.Id, requiredEvent.Title, requiredEvent.Description, requiredEvent.StartAt, requiredEvent.EndAt, requiredEvent.Status, requiredEvent.TotalSeats, requiredEvent.AvailableSeats);
@@ -61,36 +42,18 @@ namespace YaEvents.Application.Services.EventService
                 createEvent.TotalSeats,
                 createEvent.TotalSeats);
 
-            await _appDbContext.Events.AddAsync(newEvent, token);
-            await _appDbContext.SaveChangesAsync(token);
+            newEvent = await _eventRepository.Add(newEvent, token);
 
             return new EventInfo(newEvent.Id, newEvent.Title, newEvent.Description, newEvent.StartAt, newEvent.EndAt, newEvent.Status, newEvent.TotalSeats, newEvent.AvailableSeats);
         }
 
         public async Task<bool> PutEvent(Guid id, CreateEvent createEvent, CancellationToken token = default)
         {
-            var requiredEvent = await _appDbContext.Events.FirstOrDefaultAsync(e => e.Id == id && e.Status != EventStatus.Removed, token);
-            if (requiredEvent == null)
-                return false;
-
-            var eventSemaphore = AppSemaphores.GetSemaphore(requiredEvent.Id);
+            var eventSemaphore = AppSemaphores.GetSemaphore(id);
             await eventSemaphore.WaitAsync();
             try
             {
-                var bookedSeats = requiredEvent.TotalSeats - requiredEvent.AvailableSeats;
-                if (bookedSeats > createEvent.TotalSeats)
-                    throw new ValidationException("Количество мест в измененном событии, меньше чем количество уже забронированных мест.");
-
-                requiredEvent.Title = createEvent.Title;
-                requiredEvent.Description = createEvent.Description;
-                requiredEvent.StartAt = createEvent.StartAt;
-                requiredEvent.EndAt = createEvent.EndAt;
-                requiredEvent.TotalSeats = createEvent.TotalSeats;
-                requiredEvent.AvailableSeats = createEvent.TotalSeats - bookedSeats;
-
-                await _appDbContext.SaveChangesAsync(token);
-
-                return true;
+                return await _eventRepository.Update(id, createEvent, token);
             }
             finally
             {
@@ -99,26 +62,28 @@ namespace YaEvents.Application.Services.EventService
         }
         public async Task<bool> DeleteEvent(Guid id, CancellationToken token = default)
         {
-            var requiredEvent = await _appDbContext.Events.FirstOrDefaultAsync(e => e.Id == id && e.Status != EventStatus.Removed);
-            if (requiredEvent == null)
-                return false;
-            else
+            var eventSemaphore = AppSemaphores.GetSemaphore(id);
+            await eventSemaphore.WaitAsync();
+            try
             {
-                requiredEvent.Status = EventStatus.Removed;
-                await _appDbContext.SaveChangesAsync(token);
-
-                return true;
+                return await _eventRepository.Delete(id, token);
             }
+            finally
+            {
+                eventSemaphore.Release();
+            }
+
         }
-        public async Task<PaginatedResult<EventInfo>> GetEventsWithPagination(EventInfo[] sourceEvents, int pageNumber, int pageSize, CancellationToken token = default)
+        public async Task<PaginatedResult<EventInfo>> GetEventsWithPagination(int pageNumber = 1, int pageSize = 10, string? title = null, DateTime? from = null, DateTime? to = null, CancellationToken token = default)
         {
-            var events = sourceEvents.Skip((pageNumber - 1) * pageSize)
-                                     .Take(pageSize)
-                                     .ToArray();
+            var events = await _eventRepository.GetFilteredEventsWithPagination(pageNumber, pageSize, title, from, to, token);
+            var totalCount = await _eventRepository.GetFilteredEventsCount(title, from, to, token);
 
-            int totalPages = (int)Math.Ceiling((double)sourceEvents.Length / pageSize);
+            int totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
 
-            return new PaginatedResult<EventInfo>(events, pageNumber, totalPages, events.Length, sourceEvents.Length);
+            var eventsInfo = events.Select(e => new EventInfo(e.Id, e.Title, e.Description, e.StartAt, e.EndAt, e.Status, e.TotalSeats, e.AvailableSeats)).ToArray();
+
+            return new PaginatedResult<EventInfo>(eventsInfo, pageNumber, totalPages, eventsInfo.Length, totalCount);
         }
     }
 }

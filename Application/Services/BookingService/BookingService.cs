@@ -18,10 +18,12 @@ namespace YaEvents.Application.Services.BookingService
     public class BookingService : IBookingService
     {
         protected readonly ILogger<BookingService> _logger;
-        protected readonly AppDbContext _appDbContext;
-        public BookingService(AppDbContext appDbContext, ILogger<BookingService> logger)
+        protected readonly IBookingsRepository _bookingsRepository;
+        protected readonly IEventsRepository _eventRepository;
+        public BookingService(IBookingsRepository bookingsRepository, IEventsRepository eventsRepository, ILogger<BookingService> logger)
         {
-            _appDbContext = appDbContext;
+            _bookingsRepository = bookingsRepository;
+            _eventRepository = eventsRepository;
             _logger = logger;
         }
         public async Task<BookingInfo> CreateBookingAsync(Guid eventID, CancellationToken token = default)
@@ -31,13 +33,13 @@ namespace YaEvents.Application.Services.BookingService
             Booking? newBooking = null;
             try
             {
-                var requiredEvent = await _appDbContext.Events.FirstOrDefaultAsync(e => e.Id == eventID);
+                var requiredEvent = await _eventRepository.Get(eventID);
                 if (requiredEvent == null)
                     throw new NotFoundException("Не удалось создать объект бронирования так как объект события с указанным Id отсутствует") { EntityId = eventID };
                 else if (requiredEvent.Status == EventStatus.Removed)
                     throw new ValidationException("Не удалось создать объект бронирования так как объект события помечен как удаленный") { EntityId = eventID };
 
-                if (!requiredEvent.TryReserveSeats())
+                if (!(await _eventRepository.TryReserveSeats(requiredEvent.Id, token)))
                     throw new NoAvailableSeatsException("No available seats for this event") { EntityId = eventID };
 
                 newBooking = new Booking
@@ -50,8 +52,7 @@ namespace YaEvents.Application.Services.BookingService
                     requiredEvent
                 );
 
-                _appDbContext.Bookings.Add(newBooking);
-                await _appDbContext.SaveChangesAsync(token);
+                await _bookingsRepository.Add(newBooking, token);
             }
             finally
             {
@@ -71,7 +72,7 @@ namespace YaEvents.Application.Services.BookingService
 
         public async Task<BookingInfo?> GetBookingByIdAsync(Guid bookingId, CancellationToken token = default)
         {
-            var requiredBooking = await _appDbContext.Bookings.FirstOrDefaultAsync(b => b.Id == bookingId, token);
+            var requiredBooking = await _bookingsRepository.Get(bookingId, token);
             if (requiredBooking != null)
             {
                 return new BookingInfo
