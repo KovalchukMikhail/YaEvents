@@ -35,20 +35,14 @@ namespace YaEvents.Application.BackgroundServices
                     List<Guid> pendingBookingIds;
                     using (var scope = _scopeFactory.CreateScope())
                     {
-                        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-                        pendingBookingIds = await context.Bookings
-                            .Where(b => b.Status == BookingStatus.Pending)
-                            .Select(b => b.Id)
-                            .ToListAsync<Guid>();
+                        var bookingRepository = scope.ServiceProvider.GetRequiredService<IBookingsRepository>();
+                        var pendingBooking = await bookingRepository.GetPending(token);
+                        pendingBookingIds = pendingBooking.Select(b => b.Id).ToList();
                     }
                     var tasks = pendingBookingIds.Select(id =>
                         ProcessBookingAsync(id, token));
 
                     await Task.WhenAll(tasks);
-
-                    //var scope = _scopeFactory.CreateScope();
-                    //var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
-                    //await bookingService.ProcessBookings(token);
                 }
                 catch(OperationCanceledException) when (token.IsCancellationRequested)
                 {
@@ -75,23 +69,24 @@ namespace YaEvents.Application.BackgroundServices
                 await Task.Delay(ProcessingDelay, stoppingToken);
 
                 using var scope = _scopeFactory.CreateScope();
-                var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var bookingRepository = scope.ServiceProvider.GetRequiredService<IBookingsRepository>();
+                var eventRepository = scope.ServiceProvider.GetRequiredService<IEventsRepository>();
 
-                var booking = await context.Bookings.FirstOrDefaultAsync(b => b.Id == bookingId, stoppingToken);
+                var booking = await bookingRepository.Get(bookingId, stoppingToken);
                 if (booking == null || booking.Status != BookingStatus.Pending)
                     return;
 
                 _logger.LogInformation("Обрабатывается бронирование Id = {id}", booking.Id);
 
-                var @event = await context.Events.FirstOrDefaultAsync(e => e.Id == booking.EventId, stoppingToken);
+                var @event = await eventRepository.Get(booking.EventId, stoppingToken);
                 if (@event == null)
                 {
-                    await RejectBookingAsync(booking, @event, context);
+                    await RejectBookingAsync(booking, @event, eventRepository, bookingRepository, stoppingToken);
                     throw new ValidationException("Не удалось обработать объект бронирования так как объект события отсутствует") { EntityId = booking.Id };
                 }
                 else if (@event.Status == EventStatus.Removed)
                 {
-                    await RejectBookingAsync(booking, @event, context);   
+                    await RejectBookingAsync(booking, @event, eventRepository, bookingRepository, stoppingToken);   
                     throw new ValidationException("Не удалось обработать объект бронирования так как объект события помечен как удаленный") { EntityId = booking.Id };
                 }
 
@@ -99,8 +94,7 @@ namespace YaEvents.Application.BackgroundServices
                 await bookingSemaphore.WaitAsync();
                 try
                 {
-                    booking.Confirm();
-                    await context.SaveChangesAsync(stoppingToken);
+                    await bookingRepository.Confirm(booking.Id, stoppingToken);
                 }
                 finally
                 {
@@ -121,18 +115,18 @@ namespace YaEvents.Application.BackgroundServices
             }
         }
 
-        public async Task RejectBookingAsync(Booking booking, Event? curEvent, AppDbContext context, CancellationToken token = default)
+        public async Task RejectBookingAsync(Booking booking, Event? curEvent, IEventsRepository eventsRepository, IBookingsRepository bookingsRepository, CancellationToken token = default)
         {
             if (curEvent == null || curEvent.Id != booking.EventId)
             {
-                curEvent = await context.Events.FirstOrDefaultAsync(e => e.Id == booking.EventId, token);
+                curEvent = await eventsRepository.Get(booking.EventId, token);
             }
 
             var bookingSemaphore = AppSemaphores.GetSemaphore(booking.Id);
             await bookingSemaphore.WaitAsync(token);
             try
             {
-                if (booking.Reject())
+                if (await bookingsRepository.Reject(booking.Id, token))
                 {
                     if (curEvent != null)
                     {
@@ -140,24 +134,14 @@ namespace YaEvents.Application.BackgroundServices
                         await eventSemaphore.WaitAsync(token);
                         try
                         {
-                            curEvent.ReleaseSeats();
-                            await context.SaveChangesAsync(token);
+                            await eventsRepository.ReleaseSeats(curEvent.Id, token);
                         }
                         finally
                         {
                             eventSemaphore.Release();
                         }
                     }
-                    else
-                    {
-                        await context.SaveChangesAsync(token);
-                    }
                 }
-                else
-                {
-                    await context.SaveChangesAsync(token);
-                }
-
             }
             finally
             {
