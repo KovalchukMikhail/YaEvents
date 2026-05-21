@@ -16,6 +16,8 @@
 ## Изменения в рамках шестого спринта 
 1. Для управленией схемой базы данных используются миграции.
 2. В проекте создана начальная миграция для events и bookings.
+Для создания нового файла миграции на основе изменений в модели данных используется команда dotnet ef migrations add [NAME]
+Для применения миграции к базе данных используется команда dotnet ef database update [MIGRATION]
 3. Реализованы репозитории YaEvents.Infrastructure.Repositories.BookingsRepository и
 YaEvents.Infrastructure.Repositories.EventsRepository.
 4. Сервисы для получения объектов из БД используют репозитории полученные через DI.
