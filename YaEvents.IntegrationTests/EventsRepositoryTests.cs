@@ -12,37 +12,13 @@ using YaEvents.Infrastructure.Repositories.EventsRepository;
 
 namespace YaEvents.IntegrationTests
 {
-    public class EventsRepositoryTests : IAsyncLifetime
+    [Collection("Database")]
+    public class EventsRepositoryTests
     {
-        private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16-alpine")
-                                                    .Build();
-        public async Task InitializeAsync()
+        private readonly DbWorker _dbWorker;
+        public EventsRepositoryTests(DbWorker dbWorker)
         {
-            await _postgres.StartAsync();
-        }
-
-        public async Task DisposeAsync()
-        {
-            await _postgres.DisposeAsync();
-        }
-
-        private async Task<AppDbContext> CreateContext()
-        {
-            var options = new DbContextOptionsBuilder<AppDbContext>()
-                                .UseNpgsql(_postgres.GetConnectionString())
-                                .Options;
-
-            var context = new AppDbContext(options);
-            await context.Database.EnsureCreatedAsync();
-
-            return context;
-        }
-
-        private async Task ResetDatabaseAsync()
-        {
-            await using var context = await CreateContext();
-            await context.Database.ExecuteSqlRawAsync(
-                "TRUNCATE TABLE bookings, events RESTART IDENTITY CASCADE");
+            _dbWorker = dbWorker;
         }
         private Event CreateEvent(string? title = null, string? Description = null, DateTime? startAt = null, DateTime? endAt = null, EventStatus? status = null, int? totalSeats = null, int? availableSeats = null)
         {
@@ -63,8 +39,8 @@ namespace YaEvents.IntegrationTests
         public async Task Add_CorrectParameters_SaveEventToDataBase()
         {
             //Arrange
-            await ResetDatabaseAsync();
-            var context = await CreateContext();
+            await _dbWorker.ResetDatabaseAsync();
+            var context = await _dbWorker.CreateContext();
             var eventRepository = new EventsRepository(context);
             var @event = CreateEvent();
 
@@ -72,7 +48,7 @@ namespace YaEvents.IntegrationTests
             await eventRepository.Add(@event);
 
             //Assert
-            context = await CreateContext();
+            context = await _dbWorker.CreateContext();
             Assert.Equal(@event, context.Events.FirstOrDefault(e => e.Id == @event.Id));
         }
         [Fact]
@@ -81,13 +57,13 @@ namespace YaEvents.IntegrationTests
             //Arrange
             var titleBeforeUpdate = "Test001";
             var titleAfterUpdate = "Test002";
-            await ResetDatabaseAsync();
-            var context = await CreateContext();
+            await _dbWorker.ResetDatabaseAsync();
+            var context = await _dbWorker.CreateContext();
             var @event = CreateEvent(title: titleBeforeUpdate);
             await context.Events.AddAsync(@event);
             await context.SaveChangesAsync();
 
-            context = await CreateContext();
+            context = await _dbWorker.CreateContext();
             var eventRepository = new EventsRepository(context);
             var createEvent = new CreateEvent() { Description = @event.Description!, Title = titleAfterUpdate, StartAt = @event.StartAt, EndAt = @event.EndAt, TotalSeats = @event.TotalSeats };
 
@@ -95,7 +71,7 @@ namespace YaEvents.IntegrationTests
             await eventRepository.Update(@event.Id, createEvent);
 
             //Assert
-            context = await CreateContext();
+            context = await _dbWorker.CreateContext();
             var updatedEvent = await context.Events.FirstOrDefaultAsync(e => e.Id == @event.Id);
             Assert.Equal(titleAfterUpdate, updatedEvent?.Title);
         }
@@ -104,20 +80,20 @@ namespace YaEvents.IntegrationTests
         public async Task Delete_CorrectParameters_EventWithStatusRemovedInDataBase()
         {
             //Arrange
-            await ResetDatabaseAsync();
-            var context = await CreateContext();
+            await _dbWorker.ResetDatabaseAsync();
+            var context = await _dbWorker.CreateContext();
             var @event = CreateEvent();
             await context.Events.AddAsync(@event);
             await context.SaveChangesAsync();
 
-            context = await CreateContext();
+            context = await _dbWorker.CreateContext();
             var eventRepository = new EventsRepository(context);
 
             //Act
             await eventRepository.Delete(@event.Id);
 
             //Assert
-            context = await CreateContext();
+            context = await _dbWorker.CreateContext();
             var removedEvent = await context.Events.FirstOrDefaultAsync(e => e.Id == @event.Id);
             Assert.Equal(EventStatus.Removed, removedEvent?.Status);
         }
@@ -125,13 +101,13 @@ namespace YaEvents.IntegrationTests
         public async Task Get_CorrectParameters_GetEventFromDataBase()
         {
             //Arrange
-            await ResetDatabaseAsync();
-            var context = await CreateContext();
+            await _dbWorker.ResetDatabaseAsync();
+            var context = await _dbWorker.CreateContext();
             var @event = CreateEvent();
             await context.Events.AddAsync(@event);
             await context.SaveChangesAsync();
 
-            context = await CreateContext();
+            context = await _dbWorker.CreateContext();
             var eventRepository = new EventsRepository(context);
 
             //Act
@@ -144,8 +120,8 @@ namespace YaEvents.IntegrationTests
         public async Task GetFilteredEventsWithPagination_DefaultParameters_GetAllEvents()
         {
             //Arrange
-            await ResetDatabaseAsync();
-            var context = await CreateContext();
+            await _dbWorker.ResetDatabaseAsync();
+            var context = await _dbWorker.CreateContext();
             var event1 = CreateEvent(title: "001", startAt: DateTime.Parse("2010.01.01").ToUniversalTime(), endAt: DateTime.Parse("2010.01.05").ToUniversalTime());
             var event2 = CreateEvent(title: "002", startAt: DateTime.Parse("2011.01.01").ToUniversalTime(), endAt: DateTime.Parse("2011.01.05").ToUniversalTime());
             var event3 = CreateEvent(title: "011", startAt: DateTime.Parse("2012.01.01").ToUniversalTime(), endAt: DateTime.Parse("2012.01.05").ToUniversalTime());
@@ -154,7 +130,7 @@ namespace YaEvents.IntegrationTests
             await context.Events.AddAsync(event3);
             await context.SaveChangesAsync();
 
-            context = await CreateContext();
+            context = await _dbWorker.CreateContext();
             var eventRepository = new EventsRepository(context);
 
             //Act
@@ -170,8 +146,8 @@ namespace YaEvents.IntegrationTests
         public async Task GetFilteredEventsWithPagination_FilteredByTitle_GetReqieredEvents()
         {
             //Arrange
-            await ResetDatabaseAsync();
-            var context = await CreateContext();
+            await _dbWorker.ResetDatabaseAsync();
+            var context = await _dbWorker.CreateContext();
             var event1 = CreateEvent(title: "001", startAt: DateTime.Parse("2010.01.01").ToUniversalTime(), endAt: DateTime.Parse("2010.01.05").ToUniversalTime());
             var event2 = CreateEvent(title: "002", startAt: DateTime.Parse("2011.01.01").ToUniversalTime(), endAt: DateTime.Parse("2011.01.05").ToUniversalTime());
             var event3 = CreateEvent(title: "011", startAt: DateTime.Parse("2012.01.01").ToUniversalTime(), endAt: DateTime.Parse("2012.01.05").ToUniversalTime());
@@ -180,7 +156,7 @@ namespace YaEvents.IntegrationTests
             await context.Events.AddAsync(event3);
             await context.SaveChangesAsync();
 
-            context = await CreateContext();
+            context = await _dbWorker.CreateContext();
             var eventRepository = new EventsRepository(context);
 
             //Act
@@ -195,8 +171,8 @@ namespace YaEvents.IntegrationTests
         public async Task GetFilteredEventsWithPagination_FilteredByFrom_GetReqieredEvents()
         {
             //Arrange
-            await ResetDatabaseAsync();
-            var context = await CreateContext();
+            await _dbWorker.ResetDatabaseAsync();
+            var context = await _dbWorker.CreateContext();
             var event1 = CreateEvent(title: "001", startAt: DateTime.Parse("2010.01.01").ToUniversalTime(), endAt: DateTime.Parse("2010.01.05").ToUniversalTime());
             var event2 = CreateEvent(title: "002", startAt: DateTime.Parse("2011.01.01").ToUniversalTime(), endAt: DateTime.Parse("2011.01.05").ToUniversalTime());
             var event3 = CreateEvent(title: "011", startAt: DateTime.Parse("2012.01.01").ToUniversalTime(), endAt: DateTime.Parse("2012.01.05").ToUniversalTime());
@@ -205,7 +181,7 @@ namespace YaEvents.IntegrationTests
             await context.Events.AddAsync(event3);
             await context.SaveChangesAsync();
 
-            context = await CreateContext();
+            context = await _dbWorker.CreateContext();
             var eventRepository = new EventsRepository(context);
 
             //Act
@@ -220,8 +196,8 @@ namespace YaEvents.IntegrationTests
         public async Task GetFilteredEventsWithPagination_FilteredByTo_GetReqieredEvents()
         {
             //Arrange
-            await ResetDatabaseAsync();
-            var context = await CreateContext();
+            await _dbWorker.ResetDatabaseAsync();
+            var context = await _dbWorker.CreateContext();
             var event1 = CreateEvent(title: "001", startAt: DateTime.Parse("2010.01.01").ToUniversalTime(), endAt: DateTime.Parse("2010.01.05").ToUniversalTime());
             var event2 = CreateEvent(title: "002", startAt: DateTime.Parse("2011.01.01").ToUniversalTime(), endAt: DateTime.Parse("2011.01.05").ToUniversalTime());
             var event3 = CreateEvent(title: "011", startAt: DateTime.Parse("2012.01.01").ToUniversalTime(), endAt: DateTime.Parse("2012.01.05").ToUniversalTime());
@@ -230,7 +206,7 @@ namespace YaEvents.IntegrationTests
             await context.Events.AddAsync(event3);
             await context.SaveChangesAsync();
 
-            context = await CreateContext();
+            context = await _dbWorker.CreateContext();
             var eventRepository = new EventsRepository(context);
 
             //Act
@@ -245,8 +221,8 @@ namespace YaEvents.IntegrationTests
         public async Task GetFilteredEventsWithPagination_FilteredByAllFilteres_GetReqieredEvents()
         {
             //Arrange
-            await ResetDatabaseAsync();
-            var context = await CreateContext();
+            await _dbWorker.ResetDatabaseAsync();
+            var context = await _dbWorker.CreateContext();
             var event1 = CreateEvent(title: "001", startAt: DateTime.Parse("2010.01.01").ToUniversalTime(), endAt: DateTime.Parse("2010.01.05").ToUniversalTime());
             var event2 = CreateEvent(title: "002", startAt: DateTime.Parse("2011.01.01").ToUniversalTime(), endAt: DateTime.Parse("2011.01.05").ToUniversalTime());
             var event3 = CreateEvent(title: "011", startAt: DateTime.Parse("2012.01.01").ToUniversalTime(), endAt: DateTime.Parse("2012.01.05").ToUniversalTime());
@@ -258,7 +234,7 @@ namespace YaEvents.IntegrationTests
             await context.Events.AddAsync(event4);
             await context.SaveChangesAsync();
 
-            context = await CreateContext();
+            context = await _dbWorker.CreateContext();
             var eventRepository = new EventsRepository(context);
 
             //Act
@@ -273,8 +249,8 @@ namespace YaEvents.IntegrationTests
         public async Task GetFilteredEventsWithPagination_ReqierOnlySecondPage_GetReqieredEvents()
         {
             //Arrange
-            await ResetDatabaseAsync();
-            var context = await CreateContext();
+            await _dbWorker.ResetDatabaseAsync();
+            var context = await _dbWorker.CreateContext();
             var event1 = CreateEvent(title: "001", startAt: DateTime.Parse("2010.01.01").ToUniversalTime(), endAt: DateTime.Parse("2010.01.05").ToUniversalTime());
             var event2 = CreateEvent(title: "002", startAt: DateTime.Parse("2011.01.01").ToUniversalTime(), endAt: DateTime.Parse("2011.01.05").ToUniversalTime());
             var event3 = CreateEvent(title: "011", startAt: DateTime.Parse("2012.01.01").ToUniversalTime(), endAt: DateTime.Parse("2012.01.05").ToUniversalTime());
@@ -283,7 +259,7 @@ namespace YaEvents.IntegrationTests
             await context.Events.AddAsync(event3);
             await context.SaveChangesAsync();
 
-            context = await CreateContext();
+            context = await _dbWorker.CreateContext();
             var eventRepository = new EventsRepository(context);
 
             //Act
@@ -297,8 +273,8 @@ namespace YaEvents.IntegrationTests
         public async Task GetFilteredEventsCount_DefaultParameters_GetCorrectCount()
         {
             //Arrange
-            await ResetDatabaseAsync();
-            var context = await CreateContext();
+            await _dbWorker.ResetDatabaseAsync();
+            var context = await _dbWorker.CreateContext();
             var event1 = CreateEvent(title: "001", startAt: DateTime.Parse("2010.01.01").ToUniversalTime(), endAt: DateTime.Parse("2010.01.05").ToUniversalTime());
             var event2 = CreateEvent(title: "002", startAt: DateTime.Parse("2011.01.01").ToUniversalTime(), endAt: DateTime.Parse("2011.01.05").ToUniversalTime());
             var event3 = CreateEvent(title: "011", startAt: DateTime.Parse("2012.01.01").ToUniversalTime(), endAt: DateTime.Parse("2012.01.05").ToUniversalTime());
@@ -307,7 +283,7 @@ namespace YaEvents.IntegrationTests
             await context.Events.AddAsync(event3);
             await context.SaveChangesAsync();
 
-            context = await CreateContext();
+            context = await _dbWorker.CreateContext();
             var eventRepository = new EventsRepository(context);
 
             //Act
@@ -320,8 +296,8 @@ namespace YaEvents.IntegrationTests
         public async Task GetFilteredEventsCount_FilteredByTitle_GetCorrectCount()
         {
             //Arrange
-            await ResetDatabaseAsync();
-            var context = await CreateContext();
+            await _dbWorker.ResetDatabaseAsync();
+            var context = await _dbWorker.CreateContext();
             var event1 = CreateEvent(title: "001", startAt: DateTime.Parse("2010.01.01").ToUniversalTime(), endAt: DateTime.Parse("2010.01.05").ToUniversalTime());
             var event2 = CreateEvent(title: "002", startAt: DateTime.Parse("2011.01.01").ToUniversalTime(), endAt: DateTime.Parse("2011.01.05").ToUniversalTime());
             var event3 = CreateEvent(title: "011", startAt: DateTime.Parse("2012.01.01").ToUniversalTime(), endAt: DateTime.Parse("2012.01.05").ToUniversalTime());
@@ -330,7 +306,7 @@ namespace YaEvents.IntegrationTests
             await context.Events.AddAsync(event3);
             await context.SaveChangesAsync();
 
-            context = await CreateContext();
+            context = await _dbWorker.CreateContext();
             var eventRepository = new EventsRepository(context);
 
             //Act
@@ -344,8 +320,8 @@ namespace YaEvents.IntegrationTests
         public async Task GetFilteredEventsCount_FilteredByFrom_GetCorrectCount()
         {
             //Arrange
-            await ResetDatabaseAsync();
-            var context = await CreateContext();
+            await _dbWorker.ResetDatabaseAsync();
+            var context = await _dbWorker.CreateContext();
             var event1 = CreateEvent(title: "001", startAt: DateTime.Parse("2010.01.01").ToUniversalTime(), endAt: DateTime.Parse("2010.01.05").ToUniversalTime());
             var event2 = CreateEvent(title: "002", startAt: DateTime.Parse("2011.01.01").ToUniversalTime(), endAt: DateTime.Parse("2011.01.05").ToUniversalTime());
             var event3 = CreateEvent(title: "011", startAt: DateTime.Parse("2012.01.01").ToUniversalTime(), endAt: DateTime.Parse("2012.01.05").ToUniversalTime());
@@ -354,7 +330,7 @@ namespace YaEvents.IntegrationTests
             await context.Events.AddAsync(event3);
             await context.SaveChangesAsync();
 
-            context = await CreateContext();
+            context = await _dbWorker.CreateContext();
             var eventRepository = new EventsRepository(context);
 
             //Act
@@ -367,8 +343,8 @@ namespace YaEvents.IntegrationTests
         public async Task GetFilteredEventsCount_FilteredByTo_GetCorrectCount()
         {
             //Arrange
-            await ResetDatabaseAsync();
-            var context = await CreateContext();
+            await _dbWorker.ResetDatabaseAsync();
+            var context = await _dbWorker.CreateContext();
             var event1 = CreateEvent(title: "001", startAt: DateTime.Parse("2010.01.01").ToUniversalTime(), endAt: DateTime.Parse("2010.01.05").ToUniversalTime());
             var event2 = CreateEvent(title: "002", startAt: DateTime.Parse("2011.01.01").ToUniversalTime(), endAt: DateTime.Parse("2011.01.05").ToUniversalTime());
             var event3 = CreateEvent(title: "011", startAt: DateTime.Parse("2012.01.01").ToUniversalTime(), endAt: DateTime.Parse("2012.01.05").ToUniversalTime());
@@ -377,7 +353,7 @@ namespace YaEvents.IntegrationTests
             await context.Events.AddAsync(event3);
             await context.SaveChangesAsync();
 
-            context = await CreateContext();
+            context = await _dbWorker.CreateContext();
             var eventRepository = new EventsRepository(context);
 
             //Act
@@ -390,20 +366,20 @@ namespace YaEvents.IntegrationTests
         public async Task ReleaseSeats_CorrectParameters_UpdatedEventInDataBase()
         {
             //Arrange
-            await ResetDatabaseAsync();
-            var context = await CreateContext();
+            await _dbWorker.ResetDatabaseAsync();
+            var context = await _dbWorker.CreateContext();
             var @event = CreateEvent(totalSeats: 3, availableSeats: 2);
             await context.Events.AddAsync(@event);
             await context.SaveChangesAsync();
 
-            context = await CreateContext();
+            context = await _dbWorker.CreateContext();
             var eventRepository = new EventsRepository(context);
 
             //Act
             await eventRepository.ReleaseSeats(@event.Id);
 
             //Assert
-            context = await CreateContext();
+            context = await _dbWorker.CreateContext();
             var updatedEvent = await context.Events.FirstOrDefaultAsync(e => e.Id == @event.Id);
             Assert.Equal(3, updatedEvent?.AvailableSeats);
         }
@@ -411,20 +387,20 @@ namespace YaEvents.IntegrationTests
         public async Task TryReserveSeats_CorrectParameters_UpdatedEventInDataBase()
         {
             //Arrange
-            await ResetDatabaseAsync();
-            var context = await CreateContext();
+            await _dbWorker.ResetDatabaseAsync();
+            var context = await _dbWorker.CreateContext();
             var @event = CreateEvent(totalSeats: 3, availableSeats: 2);
             await context.Events.AddAsync(@event);
             await context.SaveChangesAsync();
 
-            context = await CreateContext();
+            context = await _dbWorker.CreateContext();
             var eventRepository = new EventsRepository(context);
 
             //Act
             await eventRepository.TryReserveSeats(@event.Id);
 
             //Assert
-            context = await CreateContext();
+            context = await _dbWorker.CreateContext();
             var updatedEvent = await context.Events.FirstOrDefaultAsync(e => e.Id == @event.Id);
             Assert.Equal(1, updatedEvent?.AvailableSeats);
         }
