@@ -13,6 +13,19 @@
 **Запуск из командной строки Windows**
 1. Из папки проекта содержащий файл **YaEvents.slnx** выполнить команду **dotnet test**
 
+## Изменения в рамках шестого спринта
+1. Для управленией схемой базы данных используются миграции.
+2. В проекте создана начальная миграция для events и bookings.
+3. Реализованы репозитории YaEvents.Infrastructure.Repositories.BookingsRepository и
+YaEvents.Infrastructure.Repositories.EventsRepository.
+4. Сервисы для получения объектов из БД используют репозитории полученные через DI.
+5. Созданы интеграционные тесты с реальным PostgreSQL через Testcontainers. Тесты покрывают все метады обоих репозиториев.
+Тесты для EventsRepository рассположены YaEvents.IntegrationTests.EventsRepositoryTests.
+Тесты для BookingsRepository рассположены YaEvents.IntegrationTests.BookingsRepositoryTests.
+6. В YaEvents.IntegrationTests.BookingsRepositoryTests созданы тесты для проверки ограничений AddBooking_InvalidEventId_ThrowsDbUpdateException() и связей GetByEventId_ReturnsOnlyReqieredBookings().
+7. Все тесты используют один контейнер PostgreSQL, база приводится к чистому состоянию между тестами.
+8. Для корректной работы тестов необходим запущеный Docker.
+
 ## Изменения в рамках пятого спринта
 1. Реализовано хранение данных в базе данных PostgreSql.
 1. Строка подключения расположена в appsettings.json

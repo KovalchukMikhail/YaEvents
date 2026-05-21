@@ -7,14 +7,26 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="YaEvents.IntegrationTests\**" />
     <Compile Remove="YaEvents.Tests\**" />
+    <Content Remove="YaEvents.IntegrationTests\**" />
     <Content Remove="YaEvents.Tests\**" />
+    <EmbeddedResource Remove="YaEvents.IntegrationTests\**" />
     <EmbeddedResource Remove="YaEvents.Tests\**" />
+    <None Remove="YaEvents.IntegrationTests\**" />
     <None Remove="YaEvents.Tests\**" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.4" />
   </ItemGroup>
