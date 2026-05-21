@@ -14,8 +14,8 @@ namespace YaEvents.Infrastructure
     {
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, WebApplicationBuilder builder)
         {
-            services.AddScoped<IRepository<Event>, EventsRepository>();
-            services.AddScoped<BookingsRepository>();
+            services.AddScoped<IEventsRepository, EventsRepository>();
+            services.AddScoped<IBookingsRepository, BookingsRepository>();
             services.AddDbContext<AppDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             return services;
