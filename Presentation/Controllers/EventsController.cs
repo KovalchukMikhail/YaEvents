@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Diagnostics;
 using YaEvents.Application.Services.Interfaces;
 using YaEvents.Data.Dto;
@@ -26,9 +27,8 @@ namespace YaEvents.Presentation.Controllers
             if (ModelState.ErrorCount > 0)
                 throw new ValidationException("В запросе на получение событий переданы некорректные параметры.") { ModelState = ModelState };
 
-            var events = await _eventService.GetEvents(title, from, to, token: token);
-            events = events.Where(e => e.Status == EventStatus.Existing).ToArray();
-            return Ok(_eventService.GetEventsWithPagination(events, page, pageSize));
+            var eventsInfo = await _eventService.GetEventsWithPagination(page, pageSize, title, from, to, token: token);
+            return Ok(eventsInfo);
         }
         [HttpGet]
         [Route("{id:Guid}")]

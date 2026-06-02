@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using YaEvents.Application;
 using YaEvents.Application.Middleware;
 using YaEvents.Infrastructure;
@@ -15,7 +16,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
+    db.Database.Migrate();
 }
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
