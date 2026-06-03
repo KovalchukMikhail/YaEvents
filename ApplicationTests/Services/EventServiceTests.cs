@@ -1,18 +1,15 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Application.DTO;
+using Application.Repositories;
+using Application.Services.EventService;
+using Application.Services.Interfaces;
+using Domain.Enums;
+using Domain.Models;
 using Moq;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using YaEvents.Application.Services.EventService;
-using YaEvents.Application.Services.Interfaces;
-using YaEvents.Data.Dto;
-using YaEvents.Data.Models;
-using YaEvents.Infrastructure.DataAccess;
-using YaEvents.Infrastructure.Enums;
-using YaEvents.Infrastructure.Repositories.Interfaces;
 
-namespace YaEvents.Tests.Application.Services
+namespace ApplicationTests.Services
 {
     public class EventServiceTests
     {
@@ -56,7 +53,7 @@ namespace YaEvents.Tests.Application.Services
             };
 
             _mockEventsRepository.Setup(m => m.Add(It.IsAny<Event>())).ReturnsAsync(_events[0]);
-        
+
             //Act
             await _eventService.PostEvent(sourceEventDtoLite);
 
@@ -80,7 +77,7 @@ namespace YaEvents.Tests.Application.Services
 
             //Act
             var result = await _eventService.PostEvent(sourceEventDtoLite);
-            
+
             //Assert
             Assert.True(result?.Title == sourceEventDtoLite.Title
                      && result?.Description == sourceEventDtoLite.Description

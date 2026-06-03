@@ -1,7 +1,14 @@
 <Solution>
-  <Project Path="YaEvents.csproj" />
+  <Folder Name="/Элементы решения/">
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="Application/Application.csproj" Id="63a2451e-2ea6-4419-8432-6a0d24965bbb" />
+  <Project Path="ApplicationTests/ApplicationTests.csproj" Id="91bb1b20-48b9-4e62-a791-bae39b8f8c0b" />
+  <Project Path="Domain/Domain.csproj" Id="8e6547fe-a601-4a5d-815f-368b95e446d1" />
+  <Project Path="Infrastructure/Infrastructure.csproj" Id="7e5a02d8-ed58-492b-8b07-81838f5e888e" />
+  <Project Path="Presentation/Presentation.csproj" Id="f983713d-4c4b-4706-be2e-4be43d1f44ef" />
+  <Project Path="PresentationTests/PresentationTests.csproj" Id="ee2ff92f-c1de-4642-8252-2f4a4af6218b" />
   <Project Path="YaEvents.IntegrationTests/YaEvents.IntegrationTests.csproj" Id="5c989bbf-b589-4a01-b226-7adc1611e6d9">
     <Build Solution="Debug|*" Project="false" />
   </Project>
-  <Project Path="YaEvents.Tests/YaEvents.Tests.csproj" Id="f7e92df9-e2b6-4e50-9405-70cbf76c15e1" />
 </Solution>

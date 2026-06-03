@@ -1,17 +1,14 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Mvc;
+﻿using Application.DTO;
+using Application.Services.Interfaces;
+using Domain.Enums;
+using Microsoft.AspNetCore.Http;
 using Moq;
+using Presentation.Presentation.Endpoints;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using YaEvents.Application.Services.Interfaces;
-using YaEvents.Data.Dto;
-using YaEvents.Infrastructure.Enums;
-using YaEvents.Infrastructure.Exceptions;
-using YaEvents.Presentation.Endpoints;
 
-namespace YaEvents.Tests.Presentation.Endpoints
+namespace PresentationTests.Endpoints
 {
     public class EventEndpointsTests
     {
@@ -30,7 +27,7 @@ namespace YaEvents.Tests.Presentation.Endpoints
         public async Task PostBooking_CorrectParams_Code202()
         {
             //Arrange
-            var requiredEvent = new EventInfo(Guid.NewGuid(), "Title", "Description", DateTime.Parse("2010.01.01"), DateTime.Parse("2011.01.01"), Infrastructure.Enums.EventStatus.Existing, 100, 100);
+            var requiredEvent = new EventInfo(Guid.NewGuid(), "Title", "Description", DateTime.Parse("2010.01.01"), DateTime.Parse("2011.01.01"), EventStatus.Existing, 100, 100);
             var newBookingInfo = new BookingInfo(Guid.NewGuid(), requiredEvent.Id, BookingStatus.Pending, DateTime.Now, null);
             _mockEventService.Setup(m => m.GetEvent(It.IsAny<Guid>())).ReturnsAsync(requiredEvent);
             _mockBookingService.Setup(m => m.CreateBookingAsync(It.IsAny<Guid>())).ReturnsAsync(newBookingInfo);

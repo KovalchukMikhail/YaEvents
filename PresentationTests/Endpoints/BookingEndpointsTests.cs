@@ -1,11 +1,14 @@
-﻿using Moq;
-using YaEvents.Application.Services.Interfaces;
-using YaEvents.Data.Dto;
-using YaEvents.Infrastructure.Enums;
-using YaEvents.Infrastructure.Exceptions;
-using YaEvents.Presentation.Endpoints;
+﻿using Application.DTO;
+using Application.Services.Interfaces;
+using Domain.Enums;
+using Domain.Exceptions;
+using Moq;
+using Presentation.Presentation.Endpoints;
+using System;
+using System.Collections.Generic;
+using System.Text;
 
-namespace YaEvents.Tests.Presentation.Endpoints
+namespace PresentationTests.Endpoints
 {
     public class BookingEndpointsTests
     {
@@ -30,14 +33,14 @@ namespace YaEvents.Tests.Presentation.Endpoints
             Assert.NotNull(result as Microsoft.AspNetCore.Http.HttpResults.Ok<BookingInfo>);
         }
 
-        [Fact]
-        public async Task GetBooking_NotExistingBooking_ThrowNotFoundException()
-        {
-            //Arrange
-            _mockBookingService.Setup(m => m.GetBookingByIdAsync(It.IsAny<Guid>())).ReturnsAsync((BookingInfo?) null);
+       [Fact]
+       public async Task GetBooking_NotExistingBooking_ThrowNotFoundException()
+       {
+           //Arrange
+           _mockBookingService.Setup(m => m.GetBookingByIdAsync(It.IsAny<Guid>())).ReturnsAsync((BookingInfo?) null);
 
-            //Act & Assert
-            await Assert.ThrowsAsync<NotFoundException>(async () => await BookingEndpoints.GetBooking(Guid.NewGuid(), _mockBookingService.Object));
-        }
+           //Act & Assert
+           await Assert.ThrowsAsync<NotFoundException>(async () => await BookingEndpoints.GetBooking(Guid.NewGuid(), _mockBookingService.Object));
+       }
     }
 }

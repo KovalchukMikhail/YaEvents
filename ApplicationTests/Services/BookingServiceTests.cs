@@ -1,23 +1,16 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Application.Repositories;
+using Application.Services.BookingService;
+using Application.Services.Interfaces;
+using Domain.Enums;
+using Domain.Exceptions;
+using Domain.Models;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using YaEvents.Application.BackgroundServices;
-using YaEvents.Application.Services.BookingService;
-using YaEvents.Application.Services.Interfaces;
-using YaEvents.Data.Dto;
-using YaEvents.Data.Models;
-using YaEvents.Infrastructure.DataAccess;
-using YaEvents.Infrastructure.Enums;
-using YaEvents.Infrastructure.Exceptions;
-using YaEvents.Infrastructure.Repositories.BookingsRepository;
-using YaEvents.Infrastructure.Repositories.Interfaces;
-using YaEvents.Presentation.Endpoints;
 
-namespace YaEvents.Tests.Application.Services
+namespace ApplicationTests.Services
 {
     public class BookingServiceTests
     {
@@ -44,7 +37,7 @@ namespace YaEvents.Tests.Application.Services
                     new Booking(Guid.NewGuid(), _existingEvent.Id, BookingStatus.Pending, DateTime.Parse("2002.01.01"), null, null)
                 ];
 
-            _bookingService = new BookingService(_mockBookingsRepository.Object, _mockEventsRepository.Object, _mockLogger.Object);
+            _bookingService = new BookingService(_mockBookingsRepository.Object, _mockEventsRepository.Object);
         }
 
         public Event CreateTestEvent(string? title = null, string? Description = null, DateTime? startAt = null, DateTime? endAt = null, EventStatus? status = null, int? totalSeats = null, int? availableSeats = null)
@@ -56,7 +49,7 @@ namespace YaEvents.Tests.Application.Services
                 Description ?? "Description",
                 startAt ?? DateTime.Parse("2010.01.01"),
                 endAt ?? DateTime.Parse("2011.01.01"),
-                status ?? Infrastructure.Enums.EventStatus.Existing,
+                status ?? EventStatus.Existing,
                 totalSeats ?? 4,
                 availableSeats ?? 4
             );
@@ -78,7 +71,7 @@ namespace YaEvents.Tests.Application.Services
             Assert.NotNull(result);
             Assert.Null(result.ProcessedAt);
             Assert.Equal(_existingEvent.Id, result.EventId);
-            Assert.Equal(Infrastructure.Enums.BookingStatus.Pending, result.Status);    
+            Assert.Equal(BookingStatus.Pending, result.Status);    
         }
 
         [Fact]
@@ -110,7 +103,7 @@ namespace YaEvents.Tests.Application.Services
 
 
             //Assert
-            await Assert.ThrowsAsync<ValidationException>(async () => await result);
+            await Assert.ThrowsAsync<DomainValidationException>(async () => await result);
         }
         [Fact]
         public async Task CreateBookingAsync_EventWithoutSeats_ReturnNoAvailableSeatsException()
