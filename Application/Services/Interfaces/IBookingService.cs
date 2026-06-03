@@ -1,13 +1,13 @@
-﻿using YaEvents.Data.Dto;
-using YaEvents.Data.Models;
+﻿using Application.DTO;
+using System;
+using System.Collections.Generic;
+using System.Text;
 
-namespace YaEvents.Application.Services.Interfaces
+namespace Application.Services.Interfaces
 {
     public interface IBookingService
     {
         Task<BookingInfo> CreateBookingAsync(Guid eventID, CancellationToken token = default);
         Task<BookingInfo?> GetBookingByIdAsync(Guid bookingId, CancellationToken token = default);
-        //Task ProcessBookings(CancellationToken token = default);
-        //Task RejectBookingAsync(Booking booking, Event? curEvent, CancellationToken token = default);
     }
 }
