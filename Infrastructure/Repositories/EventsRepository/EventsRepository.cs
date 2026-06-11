@@ -1,13 +1,15 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System.Collections.Concurrent;
-using YaEvents.Data.Dto;
-using YaEvents.Data.Models;
-using YaEvents.Infrastructure.DataAccess;
-using YaEvents.Infrastructure.Enums;
-using YaEvents.Infrastructure.Exceptions;
-using YaEvents.Infrastructure.Repositories.Interfaces;
+﻿using Application.DTO;
+using Application.Repositories;
+using Domain.Enums;
+using Domain.Models;
+using Infrastructure.DataAccess;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Text;
 
-namespace YaEvents.Infrastructure.Repositories.EventsRepository
+namespace Infrastructure.Repositories.EventsRepository
 {
     public class EventsRepository : IEventsRepository
     {
@@ -52,11 +54,11 @@ namespace YaEvents.Infrastructure.Repositories.EventsRepository
             var @event = await _appDbContext.Events.FirstOrDefaultAsync(e => e.Id == id, token);
             if (@event != null)
             {
-                if(@event.Status == Enums.EventStatus.Removed)
+                if (@event.Status == EventStatus.Removed)
                     return false;
                 else
                 {
-                    @event.Status = Enums.EventStatus.Removed;
+                    @event.Status = EventStatus.Removed;
                     await _appDbContext.SaveChangesAsync(token);
                     return true;
                 }

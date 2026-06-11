@@ -1,9 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Infrastructure.DataAccess;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using Testcontainers.PostgreSql;
-using YaEvents.Infrastructure.DataAccess;
 
 namespace YaEvents.IntegrationTests
 {

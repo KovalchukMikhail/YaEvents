@@ -1,7 +1,9 @@
-﻿using YaEvents.Data.Dto;
-using YaEvents.Data.Models;
+﻿using Application.DTO;
+using System;
+using System.Collections.Generic;
+using System.Text;
 
-namespace YaEvents.Application.Services.Interfaces
+namespace Application.Services.Interfaces
 {
     public interface IEventService
     {

@@ -1,10 +1,13 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System.Collections.Concurrent;
-using YaEvents.Data.Models;
-using YaEvents.Infrastructure.DataAccess;
-using YaEvents.Infrastructure.Repositories.Interfaces;
+﻿using Application.Repositories;
+using Domain.Enums;
+using Domain.Models;
+using Infrastructure.DataAccess;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Text;
 
-namespace YaEvents.Infrastructure.Repositories.BookingsRepository
+namespace Infrastructure.Repositories.BookingsRepository
 {
     public class BookingsRepository : IBookingsRepository
     {
@@ -21,12 +24,12 @@ namespace YaEvents.Infrastructure.Repositories.BookingsRepository
         }
         public async Task<Booking?> Get(Guid id, CancellationToken token = default)
         {
-            return await _appDbContext.Bookings.FirstOrDefaultAsync(b => b.Id == id); 
+            return await _appDbContext.Bookings.FirstOrDefaultAsync(b => b.Id == id);
         }
 
         public async Task<Booking[]> GetPending(CancellationToken token = default)
         {
-            return await _appDbContext.Bookings.Where(b => b.Status == Enums.BookingStatus.Pending).ToArrayAsync();
+            return await _appDbContext.Bookings.Where(b => b.Status == BookingStatus.Pending).ToArrayAsync();
         }
         public async Task<bool> Confirm(Guid id, CancellationToken token = default)
         {

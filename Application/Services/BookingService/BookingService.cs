@@ -1,30 +1,25 @@
-﻿using Microsoft.AspNetCore.Mvc.Infrastructure;
-using Microsoft.EntityFrameworkCore;
-using System.Collections.Concurrent;
-using YaEvents.Application.Services.EventService;
-using YaEvents.Application.Services.Interfaces;
-using YaEvents.Data.Dto;
-using YaEvents.Data.Models;
-using YaEvents.Infrastructure;
-using YaEvents.Infrastructure.DataAccess;
-using YaEvents.Infrastructure.Enums;
-using YaEvents.Infrastructure.Exceptions;
-using YaEvents.Infrastructure.Repositories.BookingsRepository;
-using YaEvents.Infrastructure.Repositories.EventsRepository;
-using YaEvents.Infrastructure.Repositories.Interfaces;
+﻿using Application.DTO;
+using Application.Repositories;
+using Application.Semaphores;
+using Application.Services.Interfaces;
+using Domain.Enums;
+using Domain.Exceptions;
+using Domain.Models;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Text;
 
-namespace YaEvents.Application.Services.BookingService
+namespace Application.Services.BookingService
 {
     public class BookingService : IBookingService
     {
-        protected readonly ILogger<BookingService> _logger;
         protected readonly IBookingsRepository _bookingsRepository;
         protected readonly IEventsRepository _eventRepository;
-        public BookingService(IBookingsRepository bookingsRepository, IEventsRepository eventsRepository, ILogger<BookingService> logger)
+        public BookingService(IBookingsRepository bookingsRepository, IEventsRepository eventsRepository)
         {
             _bookingsRepository = bookingsRepository;
             _eventRepository = eventsRepository;
-            _logger = logger;
         }
         public async Task<BookingInfo> CreateBookingAsync(Guid eventID, CancellationToken token = default)
         {
@@ -37,7 +32,7 @@ namespace YaEvents.Application.Services.BookingService
                 if (requiredEvent == null)
                     throw new NotFoundException("Не удалось создать объект бронирования так как объект события с указанным Id отсутствует") { EntityId = eventID };
                 else if (requiredEvent.Status == EventStatus.Removed)
-                    throw new ValidationException("Не удалось создать объект бронирования так как объект события помечен как удаленный") { EntityId = eventID };
+                    throw new DomainValidationException("Не удалось создать объект бронирования так как объект события помечен как удаленный") { EntityId = eventID };
 
                 if (!(await _eventRepository.TryReserveSeats(requiredEvent.Id, token)))
                     throw new NoAvailableSeatsException("No available seats for this event") { EntityId = eventID };
@@ -58,7 +53,7 @@ namespace YaEvents.Application.Services.BookingService
             {
                 semaphore.Release();
             }
-            
+
 
             return new BookingInfo
             (

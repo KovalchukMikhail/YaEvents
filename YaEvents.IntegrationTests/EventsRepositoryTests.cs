@@ -1,14 +1,13 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Application.DTO;
+using Domain.Enums;
+using Domain.Models;
+using Infrastructure.Repositories.EventsRepository;
+using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using System;
 using System.Collections.Generic;
 using System.Text;
 using Testcontainers.PostgreSql;
-using YaEvents.Data.Dto;
-using YaEvents.Data.Models;
-using YaEvents.Infrastructure.DataAccess;
-using YaEvents.Infrastructure.Enums;
-using YaEvents.Infrastructure.Repositories.EventsRepository;
 
 namespace YaEvents.IntegrationTests
 {
@@ -29,7 +28,7 @@ namespace YaEvents.IntegrationTests
                     Description ?? "Description",
                     startAt ?? DateTime.Parse("2010.01.01").ToUniversalTime(),
                     endAt ?? DateTime.Parse("2011.01.01").ToUniversalTime(),
-                    status ?? Infrastructure.Enums.EventStatus.Existing,
+                    status ?? EventStatus.Existing,
                     totalSeats ?? 4,
                     availableSeats ?? 4
                 );

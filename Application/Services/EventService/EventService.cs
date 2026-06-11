@@ -1,16 +1,14 @@
-﻿using Microsoft.AspNetCore.Mvc.Diagnostics;
-using Microsoft.EntityFrameworkCore;
-using System.Collections.Concurrent;
-using YaEvents.Application.Services.Interfaces;
-using YaEvents.Data.Dto;
-using YaEvents.Data.Models;
-using YaEvents.Infrastructure;
-using YaEvents.Infrastructure.DataAccess;
-using YaEvents.Infrastructure.Enums;
-using YaEvents.Infrastructure.Exceptions;
-using YaEvents.Infrastructure.Repositories.Interfaces;
+﻿using Application.DTO;
+using Application.Repositories;
+using Application.Semaphores;
+using Application.Services.Interfaces;
+using Domain.Enums;
+using Domain.Models;
+using System;
+using System.Collections.Generic;
+using System.Text;
 
-namespace YaEvents.Application.Services.EventService
+namespace Application.Services.EventService
 {
     public class EventService : IEventService
     {

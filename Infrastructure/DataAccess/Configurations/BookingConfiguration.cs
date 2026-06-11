@@ -1,8 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Domain.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using YaEvents.Data.Models;
+using System;
+using System.Collections.Generic;
+using System.Text;
 
-namespace YaEvents.Infrastructure.DataAccess.Configurations
+namespace Infrastructure.DataAccess.Configurations
 {
     public class BookingConfiguration : IEntityTypeConfiguration<Booking>
     {
