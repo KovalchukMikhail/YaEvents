@@ -24,7 +24,7 @@ namespace Infrastructure.Repositories.BookingsRepository
         }
         public async Task<Booking?> Get(Guid id, CancellationToken token = default)
         {
-            return await _appDbContext.Bookings.FirstOrDefaultAsync(b => b.Id == id);
+            return await _appDbContext.Bookings.Where(b => b.Id == id).Include(b => b.User).SingleAsync();
         }
 
         public async Task<Booking[]> GetPending(CancellationToken token = default)
@@ -41,10 +41,10 @@ namespace Infrastructure.Repositories.BookingsRepository
             return true;
         }
 
-        public async Task<bool> Reject(Guid id, CancellationToken token = default)
+        public async Task<bool> Cancel(Guid id, CancellationToken token = default)
         {
             var booking = await _appDbContext.Bookings.FirstOrDefaultAsync(b => b.Id == id);
-            if (booking == null || !booking.Reject())
+            if (booking == null || !booking.Cancel())
                 return false;
 
             await _appDbContext.SaveChangesAsync();
