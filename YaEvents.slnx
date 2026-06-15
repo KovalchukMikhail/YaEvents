@@ -8,7 +8,5 @@
   <Project Path="Infrastructure/Infrastructure.csproj" Id="7e5a02d8-ed58-492b-8b07-81838f5e888e" />
   <Project Path="Presentation/Presentation.csproj" Id="f983713d-4c4b-4706-be2e-4be43d1f44ef" />
   <Project Path="PresentationTests/PresentationTests.csproj" Id="ee2ff92f-c1de-4642-8252-2f4a4af6218b" />
-  <Project Path="YaEvents.IntegrationTests/YaEvents.IntegrationTests.csproj" Id="5c989bbf-b589-4a01-b226-7adc1611e6d9">
-    <Build Solution="Debug|*" Project="false" />
-  </Project>
+  <Project Path="YaEvents.IntegrationTests/YaEvents.IntegrationTests.csproj" Id="5c989bbf-b589-4a01-b226-7adc1611e6d9" />
 </Solution>
