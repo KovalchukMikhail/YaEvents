@@ -2,12 +2,14 @@
 using Application.Services.Interfaces;
 using Domain.Enums;
 using Domain.Exceptions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Presentation.Exceptions;
 
 namespace Presentation.Presentation.Controllers
 {
     [ApiController]
+    [Authorize]
     [Route("events")]
     public class EventsController : ControllerBase
     {
@@ -21,6 +23,7 @@ namespace Presentation.Presentation.Controllers
         [HttpGet]
         public async Task<IActionResult> GetEvents(CancellationToken token, [FromQuery] string? title = null, [FromQuery] DateTime? from = null, [FromQuery] DateTime? to = null, int page = 1, int pageSize = 10)
         {
+            var user = HttpContext.User;
             ValidateEventsRequest(from, to, page, pageSize);
 
             if (ModelState.ErrorCount > 0)
@@ -45,6 +48,7 @@ namespace Presentation.Presentation.Controllers
                 throw new NotFoundException("Не удалось получить объект события") { EntityId = id };
         }
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> PostEvent([FromBody] CreateEvent createEvent, CancellationToken token)
         {
             if (!CompareEventDates(createEvent.StartAt, createEvent.EndAt))
@@ -60,6 +64,7 @@ namespace Presentation.Presentation.Controllers
             return Created(url, newEventDto);
         }
         [HttpPut]
+        [Authorize(Roles = "Admin")]
         [Route("{id:Guid}")]
         public async Task<IActionResult> PutEvent(Guid id, [FromBody] CreateEvent createEvent, CancellationToken token)
         {
@@ -76,6 +81,7 @@ namespace Presentation.Presentation.Controllers
                 throw new NotFoundException("Не удалось получить объект события") { EntityId = id };
         }
         [HttpDelete]
+        [Authorize(Roles = "Admin")]
         [Route("{id:Guid}")]
         public async Task<IActionResult> DeleteEvent(Guid id, CancellationToken token)
         {
