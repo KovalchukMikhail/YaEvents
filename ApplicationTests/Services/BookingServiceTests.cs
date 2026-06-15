@@ -17,27 +17,32 @@ namespace ApplicationTests.Services
         private readonly IBookingService _bookingService;
         private readonly Mock<IBookingsRepository> _mockBookingsRepository;
         private readonly Mock<IEventsRepository> _mockEventsRepository;
+        private readonly Mock<IUsersRepository> _mockUsersRepository;
         private readonly Mock<ILogger<BookingService>> _mockLogger;
 
         private readonly List<Booking> _bookings;
         private readonly Event _existingEvent;
+        private readonly User _existingUser;
+        private readonly int _limitOfBookings = 10;
 
         public BookingServiceTests()
         {
             _mockLogger = new Mock<ILogger<BookingService>>();
             _mockBookingsRepository = new Mock<IBookingsRepository>();
             _mockEventsRepository = new Mock<IEventsRepository>();
+            _mockUsersRepository = new Mock<IUsersRepository>();
 
             _existingEvent = CreateTestEvent();
+            _existingUser = CreateTestUser();
 
             _bookings =
                 [
-                    new Booking(Guid.NewGuid(), _existingEvent.Id, BookingStatus.Pending, DateTime.Parse("2000.01.01"), null, null),
-                    new Booking(Guid.NewGuid(), _existingEvent.Id, BookingStatus.Pending, DateTime.Parse("2001.01.01"), null, null),
-                    new Booking(Guid.NewGuid(), _existingEvent.Id, BookingStatus.Pending, DateTime.Parse("2002.01.01"), null, null)
+                    new Booking(Guid.NewGuid(), _existingEvent.Id, BookingStatus.Pending, DateTime.Parse("2000.01.01"), processedAt: null, null, _existingUser.Id, null),
+                    new Booking(Guid.NewGuid(), _existingEvent.Id, BookingStatus.Pending, DateTime.Parse("2001.01.01"), processedAt: null, null, _existingUser.Id, null),
+                    new Booking(Guid.NewGuid(), _existingEvent.Id, BookingStatus.Pending, DateTime.Parse("2002.01.01"), processedAt: null, null, _existingUser.Id, null)
                 ];
 
-            _bookingService = new BookingService(_mockBookingsRepository.Object, _mockEventsRepository.Object);
+            _bookingService = new BookingService(_mockBookingsRepository.Object, _mockEventsRepository.Object, _mockUsersRepository.Object);
         }
 
         public Event CreateTestEvent(string? title = null, string? Description = null, DateTime? startAt = null, DateTime? endAt = null, EventStatus? status = null, int? totalSeats = null, int? availableSeats = null)
@@ -47,13 +52,25 @@ namespace ApplicationTests.Services
                 Guid.NewGuid(),
                 title ?? "Title",
                 Description ?? "Description",
-                startAt ?? DateTime.Parse("2010.01.01"),
-                endAt ?? DateTime.Parse("2011.01.01"),
+                startAt ?? DateTime.Parse("2026.08.01"),
+                endAt ?? DateTime.Parse("2026.09.01"),
                 status ?? EventStatus.Existing,
                 totalSeats ?? 4,
                 availableSeats ?? 4
             );
         }
+        public User CreateTestUser(string? login = null, string? passwordHash = null, UserRole? role = null)
+        {
+            return new User
+                (
+                    Guid.NewGuid(),
+                    login ?? "Test",
+                    passwordHash ?? "Test".GetHashCode().ToString(),
+                    role ?? UserRole.User
+                );
+        }
+
+
 
         [Fact]
         public async Task CreateBookingAsync_CorrectParam_ReturnBookingInfo()
@@ -62,9 +79,10 @@ namespace ApplicationTests.Services
             _mockEventsRepository.Setup(repo => repo.Get(It.IsAny<Guid>())).ReturnsAsync(_existingEvent);
             _mockEventsRepository.Setup(repo => repo.TryReserveSeats(It.IsAny<Guid>())).ReturnsAsync(true);
             _mockBookingsRepository.Setup(repo => repo.Add(It.IsAny<Booking>()));
+            _mockUsersRepository.Setup(repo => repo.Get(It.IsAny<Guid>())).ReturnsAsync(_existingUser);
 
             //Act
-            var result = await _bookingService.CreateBookingAsync(_existingEvent.Id);
+            var result = await _bookingService.CreateBookingAsync(_existingEvent.Id, _existingUser.Id, _limitOfBookings);
 
 
             //Assert
@@ -81,9 +99,10 @@ namespace ApplicationTests.Services
             _mockEventsRepository.Setup(repo => repo.Get(It.IsAny<Guid>())).ReturnsAsync((Event?)null);
             _mockEventsRepository.Setup(repo => repo.TryReserveSeats(It.IsAny<Guid>())).ReturnsAsync(true);
             _mockBookingsRepository.Setup(repo => repo.Add(It.IsAny<Booking>()));
+            _mockUsersRepository.Setup(repo => repo.Get(It.IsAny<Guid>())).ReturnsAsync(_existingUser);
 
             //Act
-            var result = _bookingService.CreateBookingAsync(_existingEvent.Id);
+            var result = _bookingService.CreateBookingAsync(_existingEvent.Id, _existingUser.Id, _limitOfBookings);
 
 
             //Assert
@@ -97,9 +116,10 @@ namespace ApplicationTests.Services
             _mockEventsRepository.Setup(repo => repo.Get(It.IsAny<Guid>())).ReturnsAsync(_existingEvent);
             _mockEventsRepository.Setup(repo => repo.TryReserveSeats(It.IsAny<Guid>())).ReturnsAsync(true);
             _mockBookingsRepository.Setup(repo => repo.Add(It.IsAny<Booking>()));
+            _mockUsersRepository.Setup(repo => repo.Get(It.IsAny<Guid>())).ReturnsAsync(_existingUser);
 
             //Act
-            var result = _bookingService.CreateBookingAsync(_existingEvent.Id);
+            var result = _bookingService.CreateBookingAsync(_existingEvent.Id, _existingUser.Id, _limitOfBookings);
 
 
             //Assert
@@ -112,23 +132,62 @@ namespace ApplicationTests.Services
             _mockEventsRepository.Setup(repo => repo.Get(It.IsAny<Guid>())).ReturnsAsync(_existingEvent);
             _mockEventsRepository.Setup(repo => repo.TryReserveSeats(It.IsAny<Guid>())).ReturnsAsync(false);
             _mockBookingsRepository.Setup(repo => repo.Add(It.IsAny<Booking>()));
+            _mockUsersRepository.Setup(repo => repo.Get(It.IsAny<Guid>())).ReturnsAsync(_existingUser);
 
             //Act
-            var result = _bookingService.CreateBookingAsync(_existingEvent.Id);
+            var result = _bookingService.CreateBookingAsync(_existingEvent.Id, _existingUser.Id, _limitOfBookings);
 
 
             //Assert
             await Assert.ThrowsAsync<NoAvailableSeatsException>(async () => await result);
         }
         [Fact]
-        public async Task GetBookingByIdAsync_ExistingId_ReturnBookingInfo()
+        public async Task CreateBookingAsync_PastEvent_ThrowBookingPastEventException()
         {
             //Arrange
-            _mockBookingsRepository.Setup(repo => repo.Get(It.IsAny<Guid>())).ReturnsAsync(_bookings[0]);
+            _existingEvent.StartAt = DateTime.Today.ToUniversalTime();
+            _mockEventsRepository.Setup(repo => repo.Get(It.IsAny<Guid>())).ReturnsAsync(_existingEvent);
+            _mockEventsRepository.Setup(repo => repo.TryReserveSeats(It.IsAny<Guid>())).ReturnsAsync(false);
+            _mockBookingsRepository.Setup(repo => repo.Add(It.IsAny<Booking>()));
+            _mockUsersRepository.Setup(repo => repo.Get(It.IsAny<Guid>())).ReturnsAsync(_existingUser);
 
             //Act
-            var result = await _bookingService.GetBookingByIdAsync(_bookings[0].Id);
+            var result = _bookingService.CreateBookingAsync(_existingEvent.Id, _existingUser.Id, _limitOfBookings);
 
+
+            //Assert
+            await Assert.ThrowsAsync<BookingPastEventException>(async () => await result);
+        }
+        [Fact]
+        public async Task CreateBookingAsync_BookingLimitExceeded_ThrowLimitOfActiveBookingsExceededException()
+        {
+            //Arrange
+            _existingUser.Bookings = new List<Booking>(_bookings);
+            _existingUser.Bookings.ForEach(b => b.Event = _existingEvent);
+            var limitOfBookings = 3;
+            _mockEventsRepository.Setup(repo => repo.Get(It.IsAny<Guid>())).ReturnsAsync(_existingEvent);
+            _mockEventsRepository.Setup(repo => repo.TryReserveSeats(It.IsAny<Guid>())).ReturnsAsync(false);
+            _mockBookingsRepository.Setup(repo => repo.Add(It.IsAny<Booking>()));
+            _mockUsersRepository.Setup(repo => repo.Get(It.IsAny<Guid>())).ReturnsAsync(_existingUser);
+
+            //Act
+            var result = _bookingService.CreateBookingAsync(_existingEvent.Id, _existingUser.Id, limitOfBookings);
+
+
+            //Assert
+            await Assert.ThrowsAsync<LimitOfActiveBookingsExceededException>(async () => await result);
+        }
+        [Fact]
+        public async Task GetBooking_ExistingId_ReturnBookingInfo()
+        {
+            //Arrange
+            _bookings[0].User = _existingUser;
+            _mockBookingsRepository.Setup(repo => repo.Get(It.IsAny<Guid>())).ReturnsAsync(_bookings[0]);
+            _mockUsersRepository.Setup(repo => repo.Get(It.IsAny<Guid>())).ReturnsAsync(_existingUser);
+
+            //Act
+            var result = await _bookingService.GetBooking(_bookings[0].Id, _existingUser.Id);
+        
             //Assert
             Assert.NotNull(result);
             Assert.Equal(_bookings[0].Id, result.Id);
@@ -138,16 +197,17 @@ namespace ApplicationTests.Services
             Assert.Equal(_bookings[0].ProcessedAt, result.ProcessedAt);
         }
         [Fact]
-        public async Task GetBookingByIdAsync_NotExistingId_ReturnNull()
+        public async Task GetBooking_NotExistingId_ThrowNotFoundException()
         {
             //Arrange
             _mockBookingsRepository.Setup(repo => repo.Get(It.IsAny<Guid>())).ReturnsAsync((Booking?)null);
+            _mockUsersRepository.Setup(repo => repo.Get(It.IsAny<Guid>())).ReturnsAsync(_existingUser);
 
             //Act
-            var result = await _bookingService.GetBookingByIdAsync(Guid.NewGuid());
+            var result = _bookingService.GetBooking(Guid.NewGuid(), _existingUser.Id);
 
             //Assert
-            Assert.Null(result);
+            await Assert.ThrowsAsync<NotFoundException>(async () => await result);
         }
     }
 }
