@@ -10,10 +10,12 @@ namespace Domain.Models
         public DateTime CreatedAt { get; set; }
         public DateTime? ProcessedAt { get; set; }
         public Event? Event { get; set; }
+        public Guid UserId { get; set; }
+        public User? User { get; set; }
 
         private Booking() { }
 
-        public Booking(Guid id, Guid eventId, BookingStatus status, DateTime createdAt, DateTime? processedAt, Event? curEvent)
+        public Booking(Guid id, Guid eventId, BookingStatus status, DateTime createdAt, DateTime? processedAt, Event? curEvent, Guid userId, User? user)
         {
             Id = id;
             EventId = eventId;
@@ -21,6 +23,8 @@ namespace Domain.Models
             CreatedAt = createdAt;
             ProcessedAt = processedAt;
             Event = curEvent;
+            UserId = userId;
+            User = user;
         }
 
         public bool Confirm()
@@ -32,12 +36,12 @@ namespace Domain.Models
             ProcessedAt = DateTime.Now.ToUniversalTime();
             return true;
         }
-        public bool Reject()
+        public bool Cancel()
         {
-            if (Status == BookingStatus.Rejected)
+            if (Status == BookingStatus.Cancelled)
                 return false;
 
-            Status = BookingStatus.Rejected;
+            Status = BookingStatus.Cancelled;
             ProcessedAt = DateTime.Now.ToUniversalTime();
             return true;
         }
