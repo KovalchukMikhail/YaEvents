@@ -3,6 +3,7 @@ using Domain.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -20,7 +21,7 @@ namespace Infrastructure.Security
         {
             var claims = new Dictionary<string, object>
             {
-                [JwtRegisteredClaimNames.Sub] = user.Id.ToString(),
+                [ClaimTypes.NameIdentifier] = user.Id.ToString(),
                 ["role"] = user.Role.ToString(),
             };
 
@@ -28,7 +29,7 @@ namespace Infrastructure.Security
                 Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
             int expires = 0;
-            if(int.TryParse(_configuration["Jwt:Expires"], out expires))
+            if(!int.TryParse(_configuration["Jwt:Expires"], out expires))
             {
                 expires = 30;
             }

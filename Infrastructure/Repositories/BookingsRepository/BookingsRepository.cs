@@ -24,7 +24,7 @@ namespace Infrastructure.Repositories.BookingsRepository
         }
         public async Task<Booking?> Get(Guid id, CancellationToken token = default)
         {
-            return await _appDbContext.Bookings.Where(b => b.Id == id).Include(b => b.User).SingleAsync();
+            return await _appDbContext.Bookings.Where(b => b.Id == id).Include(b => b.User).FirstOrDefaultAsync(token);
         }
 
         public async Task<Booking[]> GetPending(CancellationToken token = default)

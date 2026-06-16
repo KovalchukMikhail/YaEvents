@@ -21,6 +21,7 @@ namespace Presentation.Presentation.Controllers
             _bookingService = bookingService;
         }
         [HttpGet]
+        [AllowAnonymous]
         public async Task<IActionResult> GetEvents(CancellationToken token, [FromQuery] string? title = null, [FromQuery] DateTime? from = null, [FromQuery] DateTime? to = null, int page = 1, int pageSize = 10)
         {
             var user = HttpContext.User;
@@ -33,6 +34,7 @@ namespace Presentation.Presentation.Controllers
             return Ok(eventsInfo);
         }
         [HttpGet]
+        [AllowAnonymous]
         [Route("{id:Guid}")]
         public async Task<IActionResult> GetEvent(Guid id, CancellationToken token)
         {

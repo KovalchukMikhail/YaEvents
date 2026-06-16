@@ -26,18 +26,11 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-    //app.UseSwaggerUI(c =>
-    //{
-    //    c.SwaggerEndpoint("/swagger/v1/swagger.json", "YaEvents");
-    //    c.OAuthClientId("44f81bee-1f64-4a4d-bf93-c452b2e98b51");
-    //});
 }
 app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseHttpsRedirection();
-app.UseRouting();
 app.MapControllers();
 app.AddEndpoints();
 

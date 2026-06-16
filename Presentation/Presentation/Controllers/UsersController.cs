@@ -30,9 +30,9 @@ namespace Presentation.Presentation.Controllers
         [HttpPost]
         [AllowAnonymous]
         [Route("login")]
-        public async Task<IActionResult> Authorize([FromQuery] string login, [FromQuery] string password, CancellationToken token)
+        public async Task<IActionResult> Authorize([FromBody] UserAuthentication user, CancellationToken token)
         {
-            return Ok(await _userService.Enter(login, password, token));
+            return Ok(await _userService.Enter(user.Login, user.Password, token));
         }
     }
 }

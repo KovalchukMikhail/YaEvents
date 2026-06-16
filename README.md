@@ -13,6 +13,15 @@
 **Запуск из командной строки Windows**
 1. Из папки проекта содержащий файл **YaEvents.slnx** выполнить команду **dotnet test**
 
+## Изменения в рамках ревью восьмого спринта
+1. В BookingServiceTests добавлены тесты:
+	CreateBookingAsync_BookingLimitOfSomeUsersDoesNotAffectOthers_ThrowLimitOfActiveBookingsExceededExceptionForOneAndCorectResultForOthers()
+	CancelBooking_UserCancelHisBooking_ReturnsTrue()
+	CancelBooking_UserCancelNotHisBooking_ThrowNoRightsToOperationException()
+	CancelBooking_AdminCancelBooking_ReturnsTrue()
+2. Согласованы ключи для claim при создании токенов и в эндпоинтах.
+3. Внесены изменения в BookingsRepository.Get, SecurityServise, EventsController, Program.cs. Добавлено DTO UserAuthentication и исправлен POST /auth/login, 
+
 ## Изменения в рамках восьмого спринта
 1. Добавлена сущность пользователя. Бронирование связано с пользователем и создана соответсвующая миграция.
 2. Реализованы доменные правила: запрет бронирования прошедшего события, лимит активных броней, проверка прав при отмене.
@@ -26,6 +35,10 @@
 7. Сервис генерации токена вынесен в Infrastructure, его абстракция определена в Application.
 8. Swagger настроен для работы с JWT (кнопка «Authorize»).
 9. Лимит активных броней вынесен в конфигурацию. Сообщение об ошибке при превышении лимита содержит само значение лимита.
+
+
+
+
 
 ## Изменения в рамках седьмого спринта
 1. Солюшен разделён на четыре отдельных проекта (сборки): Domain, Application, Infrastructure, Presentation.
