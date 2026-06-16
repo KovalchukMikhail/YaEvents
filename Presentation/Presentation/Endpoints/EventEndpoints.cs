@@ -1,6 +1,7 @@
 ﻿using Application.Services.Interfaces;
 using Domain.Models;
 using Microsoft.AspNetCore.Authorization;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 namespace Presentation.Presentation.Endpoints
@@ -10,7 +11,7 @@ namespace Presentation.Presentation.Endpoints
         [Authorize(Roles = "User, Admin")]
         public static async Task<IResult> PostBooking(Guid id, IEventService eventService, IBookingService bookingService, HttpContext context, IConfiguration configuration, CancellationToken token = default)
         {
-            var userIdClaim = context.User.FindFirst(ClaimTypes.NameIdentifier);
+            var userIdClaim = context.User.FindFirst(JwtRegisteredClaimNames.Sub);
             if (userIdClaim == null)
             {
                 return Results.BadRequest("Идентификатор пользователя не найден");
