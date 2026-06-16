@@ -45,7 +45,7 @@ namespace ApplicationTests.Services
             _bookingService = new BookingService(_mockBookingsRepository.Object, _mockEventsRepository.Object, _mockUsersRepository.Object);
         }
 
-        public Event CreateTestEvent(string? title = null, string? Description = null, DateTime? startAt = null, DateTime? endAt = null, EventStatus? status = null, int? totalSeats = null, int? availableSeats = null)
+        private Event CreateTestEvent(string? title = null, string? Description = null, DateTime? startAt = null, DateTime? endAt = null, EventStatus? status = null, int? totalSeats = null, int? availableSeats = null)
         {
             return new Event
             (
@@ -59,7 +59,7 @@ namespace ApplicationTests.Services
                 availableSeats ?? 4
             );
         }
-        public User CreateTestUser(string? login = null, string? passwordHash = null, UserRole? role = null)
+        private User CreateTestUser(string? login = null, string? passwordHash = null, UserRole? role = null)
         {
             return new User
                 (
@@ -69,8 +69,24 @@ namespace ApplicationTests.Services
                     role ?? UserRole.User
                 );
         }
-
-
+        private Booking CreateTestBooking(Event @event = null,
+                                            BookingStatus? bookingStatus = null,
+                                            DateTime? createdAt = null,
+                                            DateTime? processedAt = null,
+                                            bool addEvent = false,
+                                            User user = null,
+                                            bool addUser = false)
+        {
+            return new Booking(Guid.NewGuid(),
+                        @event?.Id ?? _existingEvent.Id,
+                        bookingStatus ?? BookingStatus.Pending,
+                        createdAt ?? DateTime.Parse("2000.01.01"),
+                        processedAt ?? null,
+                        addEvent ? @event : null,
+                        user?.Id ?? _existingUser.Id,
+                        addUser ? user : null
+                    );
+        }
 
         [Fact]
         public async Task CreateBookingAsync_CorrectParam_ReturnBookingInfo()
@@ -178,6 +194,35 @@ namespace ApplicationTests.Services
             await Assert.ThrowsAsync<LimitOfActiveBookingsExceededException>(async () => await result);
         }
         [Fact]
+        public async Task CreateBookingAsync_BookingLimitOfSomeUsersDoesNotAffectOthers_ThrowLimitOfActiveBookingsExceededExceptionForOneAndCorectResultForOthers()
+        {
+            //Arrange
+            var user1 = CreateTestUser("User1");
+            var user2 = CreateTestUser("User2");
+            user1.Bookings = new List<Booking>(_bookings);
+            user1.Bookings.ForEach(b => b.Event = _existingEvent);
+            user2.Bookings = new List<Booking>();
+            var limitOfBookings = 3;
+            _mockEventsRepository.Setup(repo => repo.Get(It.IsAny<Guid>())).ReturnsAsync(_existingEvent);
+            _mockEventsRepository.Setup(repo => repo.TryReserveSeats(It.IsAny<Guid>())).ReturnsAsync(true);
+            _mockBookingsRepository.Setup(repo => repo.Add(It.IsAny<Booking>()));
+            _mockUsersRepository.Setup(repo => repo.Get(user1.Id)).ReturnsAsync(user1);
+            _mockUsersRepository.Setup(repo => repo.Get(user2.Id)).ReturnsAsync(user2);
+
+            //Act
+            var user1ResultTask = _bookingService.CreateBookingAsync(_existingEvent.Id, user1.Id, limitOfBookings);
+            var user2ResultTask = _bookingService.CreateBookingAsync(_existingEvent.Id, user2.Id, limitOfBookings);
+
+
+            //Assert
+            await Assert.ThrowsAsync<LimitOfActiveBookingsExceededException>(async () => await user1ResultTask);
+            var user2Result = await user2ResultTask;
+            Assert.NotNull(user2Result);
+            Assert.Null(user2Result.ProcessedAt);
+            Assert.Equal(_existingEvent.Id, user2Result.EventId);
+            Assert.Equal(BookingStatus.Pending, user2Result.Status);
+        }
+        [Fact]
         public async Task GetBooking_ExistingId_ReturnBookingInfo()
         {
             //Arrange
@@ -208,6 +253,59 @@ namespace ApplicationTests.Services
 
             //Assert
             await Assert.ThrowsAsync<NotFoundException>(async () => await result);
+        }
+        [Fact]
+        public async Task CancelBooking_UserCancelHisBooking_ReturnsTrue()
+        {
+            //Arrange
+            var user = CreateTestUser("user1", role: UserRole.User);
+            var booking = CreateTestBooking(_existingEvent, BookingStatus.Confirmed, DateTime.Parse("2026.06.01"), DateTime.Parse("2026.06.01"), true, user, true);
+            _mockUsersRepository.Setup(repo => repo.Get(user.Id)).ReturnsAsync(user);
+            _mockBookingsRepository.Setup(repo => repo.Get(booking.Id)).ReturnsAsync(booking);
+            _mockBookingsRepository.Setup(repo => repo.Cancel(booking.Id)).ReturnsAsync(true);
+
+            //Act
+            var result = await _bookingService.CancelBooking(user.Id, booking.Id);
+
+
+            //Assert
+            Assert.True(result);
+        }
+        [Fact]
+        public async Task CancelBooking_UserCancelNotHisBooking_ThrowNoRightsToOperationException()
+        {
+            //Arrange
+            var user1 = CreateTestUser("user1", role: UserRole.User);
+            var user2 = CreateTestUser("user2", role: UserRole.User);
+            var booking = CreateTestBooking(_existingEvent, BookingStatus.Confirmed, DateTime.Parse("2026.06.01"), DateTime.Parse("2026.06.01"), true, user1, true);
+            _mockUsersRepository.Setup(repo => repo.Get(user2.Id)).ReturnsAsync(user2);
+            _mockBookingsRepository.Setup(repo => repo.Get(booking.Id)).ReturnsAsync(booking);
+            _mockBookingsRepository.Setup(repo => repo.Cancel(booking.Id)).ReturnsAsync(true);
+
+
+            //Act
+            var result = _bookingService.CancelBooking(user2.Id, booking.Id);
+
+            //Assert
+            await Assert.ThrowsAsync<NoRightsToOperationException>(async () => await result);
+        }
+
+        [Fact]
+        public async Task CancelBooking_AdminCancelBooking_ReturnsTrue()
+        {
+            //Arrange
+            var user1 = CreateTestUser("user1", role: UserRole.User);
+            var admin = CreateTestUser("admin", role: UserRole.Admin);
+            var booking = CreateTestBooking(_existingEvent, BookingStatus.Confirmed, DateTime.Parse("2026.06.01"), DateTime.Parse("2026.06.01"), true, user1, true);
+            _mockUsersRepository.Setup(repo => repo.Get(admin.Id)).ReturnsAsync(admin);
+            _mockBookingsRepository.Setup(repo => repo.Get(booking.Id)).ReturnsAsync(booking);
+            _mockBookingsRepository.Setup(repo => repo.Cancel(booking.Id)).ReturnsAsync(true);
+
+            //Act
+            var result = await _bookingService.CancelBooking(admin.Id, booking.Id);
+
+            //Assert
+            Assert.True(result);
         }
     }
 }

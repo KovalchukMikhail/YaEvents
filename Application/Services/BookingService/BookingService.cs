@@ -45,11 +45,10 @@ namespace Application.Services.BookingService
 
                 if (user.Bookings != null)
                 {
-                    var bookingsCount = user.Bookings.Where(b => b.Event != null && b.Status != BookingStatus.Cancelled && b.Event.StartAt >= DateTime.Now.ToUniversalTime()).Count();
+                    var bookingsCount = user.Bookings.Where(b => b.Event != null && b.EventId == eventId && b.Status != BookingStatus.Cancelled).Count();
                     if(bookingsCount >= limitOfBookings)
                         throw new LimitOfActiveBookingsExceededException("Превышено число активных бронирований для одного пользователя") { CurrentBookingsCount = bookingsCount, LimitOfBookings = limitOfBookings };
                 }
-                    
 
                 if (!(await _eventRepository.TryReserveSeats(requiredEvent.Id, token)))
                     throw new NoAvailableSeatsException("No available seats for this event") { EntityId = eventId };
