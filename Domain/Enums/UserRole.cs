@@ -4,10 +4,9 @@ using System.Text;
 
 namespace Domain.Enums
 {
-    public enum BookingStatus
+    public enum UserRole
     {
-        Pending,
-        Confirmed,
-        Cancelled
+        User,
+        Admin
     }
 }

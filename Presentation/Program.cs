@@ -1,5 +1,6 @@
 using Infrastructure.DataAccess;
 using Microsoft.EntityFrameworkCore;
+using Presentation.Infrastructure.Authentication;
 using Presentation.Infrastructure.DependencyInjection;
 using Presentation.Infrastructure.Middleware;
 using Presentation.Presentation;
@@ -9,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddPresentation();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder);
+builder.AddAuthentication();
 
 var app = builder.Build();
 
@@ -25,9 +27,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
 app.UseHttpsRedirection();
 app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 app.AddEndpoints();
 

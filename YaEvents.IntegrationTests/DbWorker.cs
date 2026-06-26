@@ -35,7 +35,7 @@ namespace YaEvents.IntegrationTests
         {
             await using var context = await CreateContext();
             await context.Database.ExecuteSqlRawAsync(
-                "TRUNCATE TABLE bookings, events RESTART IDENTITY CASCADE");
+                "TRUNCATE TABLE users, bookings, events RESTART IDENTITY CASCADE");
         }
     }
 }

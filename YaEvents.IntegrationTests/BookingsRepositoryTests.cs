@@ -1,9 +1,11 @@
-﻿using Domain.Enums;
+﻿using Application.DTO;
+using Domain.Enums;
 using Domain.Models;
 using Infrastructure.Repositories.BookingsRepository;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 using System.Text;
 using Testcontainers.PostgreSql;
 
@@ -17,13 +19,15 @@ namespace YaEvents.IntegrationTests
         {
             _dbWorker = dbWorker;
         }
-        private Booking CreateBooking(Event @event, BookingStatus? status = null)
+        private Booking CreateBooking(Event @event, User user, BookingStatus? status = null)
         {
             return new Booking(Guid.NewGuid(),
                                 @event.Id,
                                 status ?? BookingStatus.Pending,
                                 DateTime.Now.ToUniversalTime(),
                                 null,
+                                null,
+                                user.Id,
                                 null
                                 );
         }
@@ -41,6 +45,12 @@ namespace YaEvents.IntegrationTests
                     availableSeats ?? 4
                 );
         }
+        private User CreateUser(string login = "User1", string password = "User1", UserRole role = UserRole.User)
+        {
+            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
+            var passworHash = Convert.ToHexString(bytes);
+            return new User(Guid.NewGuid(), login, passworHash, role);
+        }
 
         [Fact]
         public async Task Add_CorrectParameters_SaveBookingToDataBase()
@@ -50,15 +60,19 @@ namespace YaEvents.IntegrationTests
             var context = await _dbWorker.CreateContext();
             var @event = CreateEvent();
             await context.Events.AddAsync(@event);
+    
+            var user = CreateUser();
+            await context.Users.AddAsync(user);
+    
             await context.SaveChangesAsync();
-
-            var booking = CreateBooking(@event);
-
+    
+            var booking = CreateBooking(@event, user);
+    
             //Act
             context = await _dbWorker.CreateContext();
             var bookingRepository = new BookingsRepository(context);
             await bookingRepository.Add(booking);
-
+    
             //Assert
             context = await _dbWorker.CreateContext();
             var reqieredBooking = await context.Bookings.FirstOrDefaultAsync(b => b.Id == booking.Id);
@@ -71,8 +85,10 @@ namespace YaEvents.IntegrationTests
             await _dbWorker.ResetDatabaseAsync();
             var context = await _dbWorker.CreateContext();
             var @event = CreateEvent();
-            var booking = CreateBooking(@event);
+            var user = CreateUser();
+            var booking = CreateBooking(@event, user);
             await context.Events.AddAsync(@event);
+            await context.Users.AddAsync(user);
             await context.Bookings.AddAsync(booking);
             await context.SaveChangesAsync();
         
@@ -92,10 +108,12 @@ namespace YaEvents.IntegrationTests
             await _dbWorker.ResetDatabaseAsync();
             var context = await _dbWorker.CreateContext();
             var @event = CreateEvent();
-            var booking1 = CreateBooking(@event);
-            var booking2 = CreateBooking(@event);
-            var booking3 = CreateBooking(@event, BookingStatus.Confirmed);
+            var user = CreateUser();
+            var booking1 = CreateBooking(@event, user);
+            var booking2 = CreateBooking(@event, user);
+            var booking3 = CreateBooking(@event, user, BookingStatus.Confirmed);
             await context.Events.AddAsync(@event);
+            await context.Users.AddAsync(user);
             await context.Bookings.AddRangeAsync(booking1, booking2, booking3);
             await context.SaveChangesAsync();
         
@@ -115,22 +133,25 @@ namespace YaEvents.IntegrationTests
             await _dbWorker.ResetDatabaseAsync();
             var context = await _dbWorker.CreateContext();
             var @event = CreateEvent();
-            var booking = CreateBooking(@event);
+            var user = CreateUser();
+    
+            var booking = CreateBooking(@event, user);
             await context.Events.AddAsync(@event);
             await context.Bookings.AddAsync(booking);
+            await context.Users.AddAsync(user);
             await context.SaveChangesAsync();
         
         
             //Act
             context = await _dbWorker.CreateContext();
             var bookingRepository = new BookingsRepository(context);
-            await bookingRepository.Reject(booking.Id);
+            await bookingRepository.Cancel(booking.Id);
         
             //Assert
             context = await _dbWorker.CreateContext();
             var reqieredBooking = await context.Bookings.FirstOrDefaultAsync(b => b.Id == booking.Id);
             Assert.NotNull(reqieredBooking);
-            Assert.Equal(BookingStatus.Rejected, reqieredBooking.Status);
+            Assert.Equal(BookingStatus.Cancelled, reqieredBooking.Status);
         }
         [Fact]
         public async Task GetByEventId_ReturnsOnlyReqieredBookings()
@@ -140,18 +161,20 @@ namespace YaEvents.IntegrationTests
             var context = await _dbWorker.CreateContext();
             var event1 = CreateEvent();
             var event2 = CreateEvent();
-            var booking1 = CreateBooking(event1);
-            var booking2 = CreateBooking(event1);
-            var booking3 = CreateBooking(event2, BookingStatus.Confirmed);
+            var user = CreateUser();
+            var booking1 = CreateBooking(event1, user);
+            var booking2 = CreateBooking(event1,  user);
+            var booking3 = CreateBooking(event2, user, BookingStatus.Confirmed);
             await context.Events.AddRangeAsync(event1, event2);
+            await context.Users.AddAsync(user);
             await context.Bookings.AddRangeAsync(booking1, booking2, booking3);
             await context.SaveChangesAsync();
-
-
+    
+    
             //Act
             context = await _dbWorker.CreateContext();
             var reqieredBookings = await context.Bookings.Where(b => b.EventId == event1.Id).ToArrayAsync();
-
+    
             //Assert
             Assert.Equal(2, reqieredBookings.Length);
             Assert.True(reqieredBookings.All(b => b.EventId == event1.Id));
@@ -161,15 +184,20 @@ namespace YaEvents.IntegrationTests
         {
             //Arrange
             await _dbWorker.ResetDatabaseAsync();
-            var @event = CreateEvent();
-            var booking = CreateBooking(@event);
             var context = await _dbWorker.CreateContext();
+            var user = CreateUser();
+            await context.Users.AddAsync(user);
+            await context.SaveChangesAsync();
+    
+            var @event = CreateEvent();
+            var booking = CreateBooking(@event, user);
+            context = await _dbWorker.CreateContext();
             var bookingRepository = new BookingsRepository(context);
-
-
+    
+    
             //Act
             var result = bookingRepository.Add(booking);
-
+    
             //Assert
             await Assert.ThrowsAsync<DbUpdateException>(async () => await result);
         }
@@ -180,17 +208,20 @@ namespace YaEvents.IntegrationTests
             await _dbWorker.ResetDatabaseAsync();
             var context = await _dbWorker.CreateContext();
             var @event = CreateEvent();
-            var booking = CreateBooking(@event);
+            var user = CreateUser();
+            var booking = CreateBooking(@event, user);
             await context.Events.AddAsync(@event);
             await context.Bookings.AddAsync(booking);
+            await context.Users.AddAsync(user);
+    
             await context.SaveChangesAsync();
-
-
+    
+    
             //Act
             context = await _dbWorker.CreateContext();
             var bookingRepository = new BookingsRepository(context);
             await bookingRepository.Confirm(booking.Id);
-
+    
             //Assert
             context = await _dbWorker.CreateContext();
             var reqieredBooking = await context.Bookings.FirstOrDefaultAsync(b => b.Id == booking.Id);

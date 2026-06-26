@@ -87,13 +87,40 @@ namespace Presentation.Infrastructure.Middleware
                         error.Detail = $"EventId = {notAvailableSeatsException.EntityId}";
                     }
                     break;
+                case BookingPastEventException bookingPastEventException:
+                    httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    error.Title = bookingPastEventException.Message;
+                    break;
+                case DomainValidationException domainValidationException:
+                    httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    error.Title = domainValidationException.Message;
+                    break;
+                case LimitOfActiveBookingsExceededException limitOfActiveBookingsExceededException:
+                    httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
+                    error.Title = limitOfActiveBookingsExceededException.Message;
+                    if(limitOfActiveBookingsExceededException.LimitOfBookings != null)
+                    {
+                        var exDetail = $"Предельное количество бронирований для одного пользователя = {limitOfActiveBookingsExceededException.LimitOfBookings}";
+                        if(limitOfActiveBookingsExceededException.CurrentBookingsCount != null)
+                        {
+                            exDetail += $". Текущее количество бронирований = {limitOfActiveBookingsExceededException.CurrentBookingsCount}";
+                        }
+                        error.Detail = exDetail;
+                    }
+                    break;
+                case NoRightsToOperationException noRightsToOperationException:
+                    httpContext.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    error.Title = noRightsToOperationException.Message;
+                    break;
+                case UserExistsException userExistsException:
+                    httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+                    error.Title = userExistsException.Message;
+                    break;
                 default:
                     httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
                     error.Title = ex.GetType().Name;
                     error.Detail = ex.Message;
                     break;
-
-
             }
             error.Status = httpContext.Response.StatusCode;
             httpContext.Response.ContentType = "application/json";

@@ -124,7 +124,7 @@ namespace Application.Services.BackgroundServices
             await bookingSemaphore.WaitAsync(token);
             try
             {
-                if (await bookingsRepository.Reject(booking.Id, token))
+                if (await bookingsRepository.Cancel(booking.Id, token))
                 {
                     if (curEvent != null)
                     {
