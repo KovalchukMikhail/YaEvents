@@ -8,7 +8,7 @@ namespace Infrastructure.Consumer.Interfaces
 {
     public interface IEventsConsumer : IDisposable
     {
-        public void ConsumeBookingConfirmed(Func<BookingConfirmed?, ConsumeResult<string, string>, Task> action);
+        public Task ConsumeBookingConfirmed(Func<BookingConfirmed?, ConsumeResult<string, string>, Task> action);
         public void Close();
     }
 }

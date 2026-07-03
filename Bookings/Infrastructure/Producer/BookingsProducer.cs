@@ -22,14 +22,9 @@ namespace Infrastructure.Producer
             _producer = new ProducerBuilder<string, string>(config).Build();
         }
 
-        public async Task ProduceBookingConfirmedAsync(Guid bookingId, Guid eventId, CancellationToken token = default)
+        public async Task ProduceBookingConfirmedAsync(Guid bookingId, Guid eventId, Guid userId, int countOfSeats, CancellationToken token = default)
         {
-            var creatingBooking = new BookingConfirmed
-            {
-                MessageId = Guid.NewGuid(),
-                BookingId = bookingId,
-                EventId = eventId
-            };
+            var creatingBooking = new BookingConfirmed(Guid.NewGuid(), eventId, bookingId, userId, countOfSeats, null);
 
             await _producer.ProduceAsync(YaEventsConfigurations.KafkaConfigurations.CREATING_BOOKINGS_TOPIC_NAME, new Message<string, string>
             {

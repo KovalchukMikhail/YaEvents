@@ -24,7 +24,8 @@ namespace Infrastructure.Security
             var claims = new Dictionary<string, object>
             {
                 [ClaimTypes.NameIdentifier] = user.Id.ToString(),
-                ["role"] = user.Role.ToString(),
+                [ClaimTypes.Role] = user.Role.ToString()
+                //["role"] = user.Role.ToString(),
             };
 
             var key = new SymmetricSecurityKey(

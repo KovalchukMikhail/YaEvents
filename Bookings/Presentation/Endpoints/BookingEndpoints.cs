@@ -15,7 +15,7 @@ namespace Presentation.Endpoints
             {
                 return Results.BadRequest("Идентификатор пользователя не найден");
             }
-            var roleClaim = context.User.FindFirst("role");
+            var roleClaim = context.User.FindFirst(ClaimTypes.Role);
             if(roleClaim == null)
             {
                 return Results.BadRequest("Отсутсвует роль пользователя");
@@ -36,7 +36,7 @@ namespace Presentation.Endpoints
             {
                 return Results.BadRequest("Идентификатор пользователя не найден");
             }
-            var roleClaim = context.User.FindFirst("role");
+            var roleClaim = context.User.FindFirst(ClaimTypes.Role);
             if (roleClaim == null)
             {
                 return Results.BadRequest("Отсутсвует роль пользователя");

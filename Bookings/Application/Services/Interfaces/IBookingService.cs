@@ -9,6 +9,6 @@ namespace Application.Services.Interfaces
     {
         Task<BookingInfo> CreateBookingAsync(Guid eventID, Guid userId, int limitOfBookings, CancellationToken token = default);
         Task<BookingInfo?> GetBooking(Guid bookingId, Guid userId, bool isRoleAdmin, CancellationToken token = default);
-        Task<bool> CancelBooking(Guid userId, Guid bookingId, bool isRoleAdmin, CancellationToken token = default);
+        Task<bool> CancelBooking(Guid bookingId, Guid userId, bool isRoleAdmin, CancellationToken token = default);
     }
 }

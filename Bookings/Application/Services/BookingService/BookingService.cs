@@ -64,7 +64,10 @@ namespace Application.Services.BookingService
             if (requiredBooking == null)
                 throw new NotFoundException("Не удалось найти бронирование с указанным идентификатором") { EntityId = bookingId };
 
-            if(requiredBooking.UserId == userId || isRoleAdmin)
+            if (requiredBooking.Status == BookingStatus.Cancelled)
+                throw new NotFoundException("Бронирование отмечано как удаленное") { EntityId = bookingId };
+
+            if (requiredBooking.UserId == userId || isRoleAdmin)
             {
                 return new BookingInfo
                     (
@@ -79,7 +82,7 @@ namespace Application.Services.BookingService
             else
                 throw new NoRightsToOperationException("Нельзя получить бронирования принадлежащии другому пользователю.");
         }
-        public async Task<bool> CancelBooking(Guid userId, Guid bookingId, bool isRoleAdmin, CancellationToken token = default)
+        public async Task<bool> CancelBooking(Guid bookingId, Guid userId, bool isRoleAdmin, CancellationToken token = default)
         {
             Booking? requiredBooking = await _bookingsRepository.Get(bookingId, token);
 

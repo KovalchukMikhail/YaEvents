@@ -6,6 +6,6 @@ namespace Application.Producer
 {
     public interface IBookingsProducer : IDisposable
     {
-        public Task ProduceBookingConfirmedAsync(Guid bookingId, Guid eventId, CancellationToken token = default);
+        public Task ProduceBookingConfirmedAsync(Guid bookingId, Guid eventId, Guid userId, int countOfSeats, CancellationToken token = default);
     }
 }

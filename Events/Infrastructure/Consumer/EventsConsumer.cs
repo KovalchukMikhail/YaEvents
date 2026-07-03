@@ -32,7 +32,7 @@ namespace Infrastructure.Consumer
             _consumer.Subscribe(YaEventsConfigurations.KafkaConfigurations.CREATING_BOOKINGS_TOPIC_NAME);
 
         }
-        public async void ConsumeBookingConfirmed(Func<BookingConfirmed?, ConsumeResult<string, string>, Task> action)
+        public async Task ConsumeBookingConfirmed(Func<BookingConfirmed?, ConsumeResult<string, string>, Task> action)
         {
             var consumeResult = _consumer.Consume();
             var bookingConfirmed = JsonSerializer.Deserialize<BookingConfirmed>(consumeResult.Message.Value);

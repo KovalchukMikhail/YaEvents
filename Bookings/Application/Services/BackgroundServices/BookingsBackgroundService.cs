@@ -18,6 +18,7 @@ namespace Application.Services.BackgroundServices
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly IBookingsProducer _bookingsProducer;
 
+        private static readonly TimeSpan ProcessingDelay = TimeSpan.FromSeconds(2);
 
         public BookingsBackgroundService(ILogger<BookingsBackgroundService> logger, IServiceScopeFactory scopeFactory, IBookingsProducer bookingsProducer)
         {
@@ -45,6 +46,8 @@ namespace Application.Services.BackgroundServices
                         ProcessBookingAsync(id, token));
 
                     await Task.WhenAll(tasks);
+
+                    await Task.Delay(ProcessingDelay);
                 }
                 catch (OperationCanceledException) when (token.IsCancellationRequested)
                 {
@@ -79,7 +82,7 @@ namespace Application.Services.BackgroundServices
             
                 await bookingRepository.Confirm(booking.Id, stoppingToken);
 
-                await _bookingsProducer.ProduceBookingConfirmedAsync(booking.Id, booking.EventId, stoppingToken);
+                await _bookingsProducer.ProduceBookingConfirmedAsync(booking.Id, booking.EventId, booking.UserId, 1, stoppingToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
