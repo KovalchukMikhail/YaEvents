@@ -1,12 +1,24 @@
 <Solution>
+  <Folder Name="/Bookings/">
+    <Project Path="Bookings/Application/Application.csproj" Id="9eb08b1b-a143-4a9a-8c3f-de50134727d4" />
+    <Project Path="Bookings/Domain/Domain.csproj" Id="1d449a33-3115-4a4c-9a58-1ac7c486c4e6" />
+    <Project Path="Bookings/Infrastructure/Infrastructure.csproj" Id="dadcb159-ff1b-4f99-8752-d90021a3d74d" />
+    <Project Path="Bookings/Presentation/Presentation.csproj" Id="649fdba9-6a93-43fc-9e0d-7df47d36a01d" />
+  </Folder>
+  <Folder Name="/Events/">
+    <Project Path="Events/Application/Application.csproj" Id="c0707cee-e3bc-4a37-977f-ae354fb2420d" />
+    <Project Path="Events/Domain/Domain.csproj" Id="8c4b3033-0f32-4dc9-92e7-e1cd353d8135" />
+    <Project Path="Events/Infrastructure/Infrastructure.csproj" Id="4a644cb5-95f0-4a9f-b756-bbf672ca637c" />
+    <Project Path="Events/Presentation/Presentation.csproj" Id="24a81ee8-889e-4ad7-acc4-1288b67a7198" />
+  </Folder>
+  <Folder Name="/Users/">
+    <Project Path="Users/Application/Application.csproj" Id="f1bc53c5-d122-4c83-8d07-1d9aae8afade" />
+    <Project Path="Users/Domain/Domain.csproj" Id="02087a5c-61c0-402c-a8ff-1871aedd6472" />
+    <Project Path="Users/Infrastructure/Infrastructure.csproj" Id="d29a308f-65cb-4cf6-8f5c-85c47fc5454a" />
+    <Project Path="Users/Presentation/Presentation.csproj" Id="3a33c7f7-52ec-4ec4-bc1c-562bd0514f5f" />
+  </Folder>
   <Folder Name="/Элементы решения/">
     <File Path="README.md" />
   </Folder>
-  <Project Path="Application/Application.csproj" Id="63a2451e-2ea6-4419-8432-6a0d24965bbb" />
-  <Project Path="ApplicationTests/ApplicationTests.csproj" Id="91bb1b20-48b9-4e62-a791-bae39b8f8c0b" />
-  <Project Path="Domain/Domain.csproj" Id="8e6547fe-a601-4a5d-815f-368b95e446d1" />
-  <Project Path="Infrastructure/Infrastructure.csproj" Id="7e5a02d8-ed58-492b-8b07-81838f5e888e" />
-  <Project Path="Presentation/Presentation.csproj" Id="f983713d-4c4b-4706-be2e-4be43d1f44ef" />
-  <Project Path="PresentationTests/PresentationTests.csproj" Id="ee2ff92f-c1de-4642-8252-2f4a4af6218b" />
-  <Project Path="YaEvents.IntegrationTests/YaEvents.IntegrationTests.csproj" Id="5c989bbf-b589-4a01-b226-7adc1611e6d9" />
+  <Project Path="YaEventsConfigurations/YaEventsConfigurations.csproj" Id="5a4a1a69-1213-4d1f-a3b4-a04506c635b0" />
 </Solution>

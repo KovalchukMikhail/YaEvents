@@ -1,0 +1,12 @@
+**/.git
+**/.vs
+**/.idea
+**/bin
+**/obj
+**/*.user
+**/*.suo
+**/[Bb]in
+**/[Oo]bj
+**/docker-compose*.yml
+**/*.md
+**/README*
