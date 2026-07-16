@@ -36,6 +36,18 @@ services:
       interval: 10s
       timeout: 10s
       retries: 15
+      
+  redis:
+    image: redis:7.2-alpine
+    container_name: eventapi-redis
+    command: redis-server --requirepass password
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   # ─────────────────────────── Базы данных (по одной на сервис) ───────────────────────────
   users-db:
@@ -119,6 +131,8 @@ services:
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=Host=events-db;Port=5432;Database=events;Username=postgres;Password=postgres
       - Kafka__BootstrapServers=kafka:29092
+      - Redis__Connection=redis:6379
+      - Redis__Password=password
     restart: unless-stopped 
 
   bookings:

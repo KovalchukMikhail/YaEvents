@@ -119,5 +119,15 @@ namespace Infrastructure.Repositories.EventsRepository
 
             return events;
         }
+
+        public async Task<Event[]> GetTopTenEvents(CancellationToken token = default)
+        {
+            return await _appDbContext.Events.Where(e => e.Status != EventStatus.Removed && e.TotalSeats != 0)
+                                            .OrderByDescending(e => e.TotalSeats - e.AvailableSeats)
+                                            .Take(10)
+                                            .ToAsyncEnumerable()
+                                            .OrderByDescending(e => (e.TotalSeats - e.AvailableSeats)/ e.TotalSeats)
+                                            .ToArrayAsync(token);
+        }
     }
 }

@@ -47,6 +47,14 @@ namespace Presentation.Controllers
             else
                 throw new NotFoundException("Не удалось получить объект события") { EntityId = id };
         }
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("top10")]
+        public async Task<IActionResult> GetTopTenEvents(CancellationToken token)
+        {
+            var eventsInfo = await _eventService.GetTopTenEvents(token);
+            return Ok(eventsInfo);
+        }
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> PostEvent([FromBody] CreateEvent createEvent, CancellationToken token)
@@ -96,6 +104,7 @@ namespace Presentation.Controllers
             else
                 throw new NotFoundException("Не удалось удалить объект события, так как событие не найдено") { EntityId = id };
         }
+
         private bool CompareEventDates(DateTime startAt, DateTime endAt)
         {
             return startAt < endAt;

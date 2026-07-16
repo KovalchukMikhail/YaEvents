@@ -1,4 +1,5 @@
-﻿using Application.DTO;
+﻿using Application.Cache;
+using Application.DTO;
 using Application.Repositories;
 using Application.Semaphores;
 using Application.Services.Interfaces;
@@ -13,15 +14,23 @@ namespace Application.Services.EventService
     public class EventService : IEventService
     {
         protected readonly IEventsRepository _eventRepository;
-        public EventService(IEventsRepository eventRepository)
+        protected readonly ICasheRepository _casheRepository;
+        public EventService(IEventsRepository eventRepository, ICasheRepository casheRepository)
         {
             _eventRepository = eventRepository;
+            _casheRepository = casheRepository;
         }
         public async Task<EventInfo?> GetEvent(Guid id, CancellationToken token = default)
         {
-            var requiredEvent = await _eventRepository.Get(id, token);
+            var requiredEvent = await _casheRepository.GetEvent(id);
+            if(requiredEvent != null)
+                return new EventInfo(requiredEvent.Id, requiredEvent.Title, requiredEvent.Description, requiredEvent.StartAt, requiredEvent.EndAt, requiredEvent.Status, requiredEvent.TotalSeats, requiredEvent.AvailableSeats);
+
+            requiredEvent = await _eventRepository.Get(id, token);
             if (requiredEvent != null)
             {
+                await _casheRepository.AddEventToCashe(requiredEvent);
+
                 return new EventInfo(requiredEvent.Id, requiredEvent.Title, requiredEvent.Description, requiredEvent.StartAt, requiredEvent.EndAt, requiredEvent.Status, requiredEvent.TotalSeats, requiredEvent.AvailableSeats);
             }
             else
@@ -51,7 +60,10 @@ namespace Application.Services.EventService
             await eventSemaphore.WaitAsync();
             try
             {
-                return await _eventRepository.Update(id, createEvent, token);
+
+                var result = await _eventRepository.Update(id, createEvent, token);
+                await _casheRepository.RemoveEventFromCache(id);
+                return result;
             }
             finally
             {
@@ -64,13 +76,14 @@ namespace Application.Services.EventService
             await eventSemaphore.WaitAsync();
             try
             {
-                return await _eventRepository.Delete(id, token);
+                var result = await _eventRepository.Delete(id, token);
+                await _casheRepository.RemoveEventFromCache(id);
+                return result;
             }
             finally
             {
                 eventSemaphore.Release();
             }
-
         }
         public async Task<PaginatedResult<EventInfo>> GetEventsWithPagination(int pageNumber = 1, int pageSize = 10, string? title = null, DateTime? from = null, DateTime? to = null, CancellationToken token = default)
         {
@@ -82,6 +95,17 @@ namespace Application.Services.EventService
             var eventsInfo = events.Select(e => new EventInfo(e.Id, e.Title, e.Description, e.StartAt, e.EndAt, e.Status, e.TotalSeats, e.AvailableSeats)).ToArray();
 
             return new PaginatedResult<EventInfo>(eventsInfo, pageNumber, totalPages, eventsInfo.Length, totalCount);
+        }
+        public async Task<EventInfo[]?> GetTopTenEvents(CancellationToken token = default)
+        {
+            var events = await _casheRepository.GetTopTenEvents();
+            if(events == null)
+            {
+                events = await _eventRepository.GetTopTenEvents(token);
+                await _casheRepository.AddTopTenEventsToCashe(events);
+            }
+
+            return events.Select(e => new EventInfo(e.Id, e.Title, e.Description, e.StartAt, e.EndAt, e.Status, e.TotalSeats, e.AvailableSeats)).ToArray();
         }
     }
 }

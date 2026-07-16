@@ -16,5 +16,6 @@ namespace Application.Repositories
         public Task<Event[]> GetFilteredEventsWithPagination(int pageNumber = 1, int pageSize = 10, string? title = null, DateTime? from = null, DateTime? to = null, CancellationToken token = default);
         public Task ReleaseSeats(Guid id, CancellationToken token = default);
         public Task<bool> TryReserveSeats(Guid id, CancellationToken token = default);
+        public Task<Event[]> GetTopTenEvents(CancellationToken token = default);
     }
 }
