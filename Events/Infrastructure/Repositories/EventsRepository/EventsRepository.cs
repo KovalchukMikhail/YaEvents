@@ -123,10 +123,8 @@ namespace Infrastructure.Repositories.EventsRepository
         public async Task<Event[]> GetTopTenEvents(CancellationToken token = default)
         {
             return await _appDbContext.Events.Where(e => e.Status != EventStatus.Removed && e.TotalSeats != 0)
-                                            .OrderByDescending(e => e.TotalSeats - e.AvailableSeats)
+                                            .OrderByDescending(e => (double)(e.TotalSeats - e.AvailableSeats) / e.TotalSeats)
                                             .Take(10)
-                                            .ToAsyncEnumerable()
-                                            .OrderByDescending(e => (e.TotalSeats - e.AvailableSeats)/ e.TotalSeats)
                                             .ToArrayAsync(token);
         }
     }

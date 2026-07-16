@@ -49,7 +49,7 @@ namespace Presentation.Controllers
         }
         [HttpGet]
         [AllowAnonymous]
-        [Route("top10")]
+        [Route("top")]
         public async Task<IActionResult> GetTopTenEvents(CancellationToken token)
         {
             var eventsInfo = await _eventService.GetTopTenEvents(token);

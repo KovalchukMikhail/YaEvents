@@ -40,11 +40,11 @@ services:
   redis:
     image: redis:7.2-alpine
     container_name: eventapi-redis
-    command: redis-server --requirepass password
+    command: redis-server --requirepass "password"
     ports:
       - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli -a password ping"]
       interval: 5s
       timeout: 5s
       retries: 10

@@ -101,6 +101,11 @@ namespace Infrastructure.CasheRepositories
                 _logger.LogWarning(ex, "Отсутсвует соединение с Redis");
                 return null;
             }
+            catch (RedisException ex)
+            {
+                _logger.LogWarning(ex, "Ошибка при работе с Redis");
+                return null;
+            }
 
             return db;
         }
