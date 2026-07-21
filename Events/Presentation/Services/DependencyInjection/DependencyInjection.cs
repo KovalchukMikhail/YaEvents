@@ -1,7 +1,9 @@
-﻿using Application.Repositories;
+﻿using Application.Cache;
+using Application.Repositories;
 using Application.Services.EventService;
 using Application.Services.Interfaces;
 using Infrastructure.BackgroundServices;
+using Infrastructure.CasheRepositories;
 using Infrastructure.Consumer;
 using Infrastructure.Consumer.Interfaces;
 using Infrastructure.DataAccess;
@@ -11,6 +13,7 @@ using Infrastructure.Repositories.MessageRepository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
+using StackExchange.Redis;
 using System.Text.Json.Serialization;
 
 namespace Presentation.Services.DependencyInjection
@@ -64,9 +67,42 @@ namespace Presentation.Services.DependencyInjection
             services.AddSingleton<IEventsConsumer, EventsConsumer>();
             services.AddSingleton<TopicBootstrapper>();
 
+            services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(GetRedisConfigurationOptions(builder.Configuration)));
+            services.AddScoped<ICasheRepository, RedisCasheRepository>();
+
             services.AddHostedService<EventsBackgroundService>();
 
             return services;
+        }
+
+        public static ConfigurationOptions GetRedisConfigurationOptions(IConfiguration configuration)
+        {
+            var redisSection = configuration.GetSection("Redis");
+            if (!int.TryParse(redisSection["ConnectTimeout"], out int connectionTime))
+            {
+                connectionTime = 5000;
+            }
+            if (!int.TryParse(redisSection["SyncTimeout"], out int syncTime))
+            {
+                syncTime = 3000;
+            }
+            if(!int.TryParse(redisSection["ConnectRetry"], out int connectRetry))
+            {
+                connectRetry = 3;
+            }
+            var password = redisSection["Password"];
+            if (string.IsNullOrEmpty(password))
+                throw new ArgumentException("В конфигурации не передано значение пароля для Redis");
+
+            return new ConfigurationOptions
+            {
+                EndPoints = { redisSection["Connection"] ?? "localhost:6379" },
+                Password = password,
+                ConnectTimeout = connectionTime,
+                SyncTimeout = syncTime,
+                AbortOnConnectFail = false,
+                ConnectRetry = connectRetry
+            };
         }
     }
 }

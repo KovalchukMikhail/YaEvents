@@ -1,4 +1,5 @@
-﻿using Application.Repositories;
+﻿using Application.Cache;
+using Application.Repositories;
 using Confluent.Kafka;
 using Infrastructure.Consumer.Interfaces;
 using Infrastructure.Repositories.Interfaces;
@@ -40,7 +41,7 @@ namespace Infrastructure.BackgroundServices
             {
                 while (!token.IsCancellationRequested)
                 {
-                    _eventsConsumer.ConsumeBookingConfirmed(ProcessBookingConfirmedMessage);
+                    await _eventsConsumer.ConsumeBookingConfirmed(ProcessBookingConfirmedMessage);
                 }
             }
             catch (OperationCanceledException)
@@ -101,7 +102,9 @@ namespace Infrastructure.BackgroundServices
                     return;
                 }
 
+                var casheRepository = scope.ServiceProvider.GetRequiredService<ICasheRepository>();
                 await eventsRepository.TryReserveSeats(@event.Id);
+                await casheRepository.RemoveEventFromCache(@event.Id);
                 message = new Domain.Models.Message(bookingConfirmed.MessageId);
                 await messageRepository.Add(message);
             }
