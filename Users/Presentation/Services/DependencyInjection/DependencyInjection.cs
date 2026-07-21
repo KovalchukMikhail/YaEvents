@@ -8,6 +8,9 @@ using Infrastructure.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using System.Text.Json.Serialization;
 
 namespace Presentation.Services.DependencyInjection
@@ -58,6 +61,23 @@ namespace Presentation.Services.DependencyInjection
             services.AddScoped<IUsersRepository, UsersRepository>();
             services.AddScoped<ISecurityServise, SecurityServise>();
             services.AddDbContext<AppDbContext>(options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+            return services;
+        }
+        public static IServiceCollection AddObservability(this IServiceCollection services, WebApplicationBuilder builder)
+        {
+            services.AddOpenTelemetry()
+                .WithTracing(tracing => tracing
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddEntityFrameworkCoreInstrumentation()
+                    .AddOtlpExporter(o => o.Endpoint = new Uri(builder.Configuration["Otlp:Endpoint"]!)))
+                .WithMetrics(metrics => metrics
+                    .AddAspNetCoreInstrumentation()
+                    .AddRuntimeInstrumentation()
+                    .AddPrometheusExporter())
+                .ConfigureResource(r => r.AddService(serviceName: "users"));
+
 
             return services;
         }

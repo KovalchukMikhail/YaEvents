@@ -20,6 +20,8 @@
   <Folder Name="/Элементы решения/">
     <File Path="README.md" />
   </Folder>
-  <Project Path="Events/EventsTests/EventsTests.csproj" Id="4e184288-19d6-4254-b5ee-725c20f2c01b" />
+  <Project Path="Events/EventsTests/EventsTests.csproj" Id="4e184288-19d6-4254-b5ee-725c20f2c01b">
+    <Build Solution="Debug|*" Project="false" />
+  </Project>
   <Project Path="YaEventsConfigurations/YaEventsConfigurations.csproj" Id="5a4a1a69-1213-4d1f-a3b4-a04506c635b0" />
 </Solution>
