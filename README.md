@@ -56,7 +56,7 @@
 ## Описание системы наблюдаемости
 1. OpenTelemetry SDK интегрирован во все 3 сервиса.
 2. Метрики экспортируются через OpenTelemetry и публикуются в эндпоинте /metrics
-3. Prometheus собирает метрики по pull-модели.
+3. Prometheus собирает метрики по pull-модели (http://localhost:9090).
 4. Трейсы отправляются в Jaeger. Jaeger доступен по http://localhost:16686
 5. В Grafana создан дашборд с метриками (Дашборд экспортирован в dashboard.json). Данные забираются из Prometheus по адресу http://prometheus:9090
 6. Графана доступен по http://localhost:3000

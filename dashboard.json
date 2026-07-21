@@ -44,7 +44,8 @@
                 "value": 80
               }
             ]
-          }
+          },
+          "unit": "percent"
         },
         "overrides": []
       },
@@ -53,6 +54,74 @@
         "w": 12,
         "x": 0,
         "y": 0
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "10.4.2",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ffsrj35gex728f"
+          },
+          "editorMode": "code",
+          "expr": "sum(rate(http_server_request_duration_seconds_count{http_response_status_code=~\"2..\"}[$__rate_interval])) \r\n/ \r\nsum(rate(http_server_request_duration_seconds_count[$__rate_interval])) * 100 ",
+          "instant": false,
+          "legendFormat": "__auto",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Error Rate",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ffsrj35gex728f"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
       },
       "id": 4,
       "options": {
@@ -86,7 +155,7 @@
           "refId": "A"
         }
       ],
-      "title": "Panel Title",
+      "title": "Runtime (Exceptions)",
       "type": "stat"
     },
     {
@@ -153,7 +222,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 8
+        "y": 16
       },
       "id": 3,
       "options": {
@@ -182,7 +251,7 @@
           "refId": "A"
         }
       ],
-      "title": "Panel Title",
+      "title": "Throughput",
       "type": "timeseries"
     },
     {
@@ -200,8 +269,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -216,7 +284,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 16
+        "y": 24
       },
       "id": 2,
       "options": {
@@ -250,7 +318,7 @@
           "refId": "A"
         }
       ],
-      "title": "Panel Title",
+      "title": "Active requests",
       "type": "stat"
     },
     {
@@ -300,8 +368,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -317,7 +384,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 24
+        "y": 32
       },
       "id": 1,
       "options": {
@@ -346,7 +413,7 @@
           "refId": "A"
         }
       ],
-      "title": "Panel Title",
+      "title": "Latency",
       "type": "timeseries"
     }
   ],
@@ -363,6 +430,6 @@
   "timezone": "browser",
   "title": "YaEvents",
   "uid": "efsrrymuehp8gf",
-  "version": 3,
+  "version": 6,
   "weekStart": ""
 }
