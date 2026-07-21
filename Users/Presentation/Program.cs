@@ -3,13 +3,20 @@ using Microsoft.EntityFrameworkCore;
 using Presentation.Middleware;
 using Presentation.Services.Authentication;
 using Presentation.Services.DependencyInjection;
+using Serilog;
+using Serilog.Formatting.Compact;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddPresentation();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder);
+builder.Services.AddObservability(builder);
 builder.AddAuthentication();
+
+builder.Host.UseSerilog((ctx, cfg) =>
+    cfg.ReadFrom.Configuration(ctx.Configuration)
+       .WriteTo.Console(new CompactJsonFormatter()));
 
 var app = builder.Build();
 
@@ -30,6 +37,8 @@ app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapPrometheusScrapingEndpoint();
 app.MapControllers();
+
 
 app.Run();

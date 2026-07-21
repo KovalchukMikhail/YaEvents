@@ -13,6 +13,9 @@ using Infrastructure.Repositories.MessageRepository;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
 using StackExchange.Redis;
 using System.Text.Json.Serialization;
 
@@ -103,6 +106,23 @@ namespace Presentation.Services.DependencyInjection
                 AbortOnConnectFail = false,
                 ConnectRetry = connectRetry
             };
+        }
+        public static IServiceCollection AddObservability(this IServiceCollection services, WebApplicationBuilder builder)
+        {
+            services.AddOpenTelemetry()
+                .WithTracing(tracing => tracing
+                    .AddAspNetCoreInstrumentation()
+                    .AddHttpClientInstrumentation()
+                    .AddEntityFrameworkCoreInstrumentation()
+                    .AddOtlpExporter(o => o.Endpoint = new Uri(builder.Configuration["Otlp:Endpoint"]!)))
+                .WithMetrics(metrics => metrics
+                    .AddAspNetCoreInstrumentation()
+                    .AddRuntimeInstrumentation()
+                    .AddPrometheusExporter())
+                .ConfigureResource(r => r.AddService(serviceName: "events"));
+
+
+            return services;
         }
     }
 }

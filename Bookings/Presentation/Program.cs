@@ -4,13 +4,20 @@ using Presentation.Infrastructure;
 using Presentation.Infrastructure.Authentication;
 using Presentation.Infrastructure.DependencyInjection;
 using Presentation.Infrastructure.Middleware;
+using Serilog;
+using Serilog.Formatting.Compact;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddPresentation();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder);
+builder.Services.AddObservability(builder);
 builder.AddAuthentication();
+
+builder.Host.UseSerilog((ctx, cfg) =>
+    cfg.ReadFrom.Configuration(ctx.Configuration)
+       .WriteTo.Console(new CompactJsonFormatter()));
 
 var app = builder.Build();
 
@@ -32,6 +39,8 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapPrometheusScrapingEndpoint();
 app.AddEndpoints();
+
 
 app.Run();
